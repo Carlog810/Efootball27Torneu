@@ -65,12 +65,19 @@ export function TournamentForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         <div>
           <Label htmlFor="feeType">{f.fee}</Label>
           <Select id="feeType" name="feeType" defaultValue="FREE">
             <option value="FREE">{t.badges.fee.FREE}</option>
             <option value="PAID">{t.badges.fee.PAID}</option>
+          </Select>
+        </div>
+        <div>
+          <Label htmlFor="legs">{f.legs}</Label>
+          <Select id="legs" name="legs" defaultValue="1">
+            <option value="1">{f.legsSingle}</option>
+            <option value="2">{f.legsDouble}</option>
           </Select>
         </div>
         <div>

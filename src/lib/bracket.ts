@@ -5,6 +5,7 @@
 export interface BracketMatch {
   round: number;
   position: number;
+  leg?: number;
   participantAId: string | null;
   participantBId: string | null;
   scoreA?: number | null;
@@ -26,6 +27,12 @@ interface InternalMatch extends BracketMatch {
   // a slot that is merely "not decided yet" (a real, still-pending match)
   // must never be treated as a walkover.
   dead: boolean;
+  // A position is "two-sided" when it is structurally guaranteed to end up
+  // with two real participants (as opposed to a bye/walkover, where only
+  // one side will ever be filled). This is *not* the same as `!dead`: a
+  // walkover position also has `dead === false` (one side is alive) but
+  // is not two-sided. Only two-sided positions get a second leg.
+  twoSided: boolean;
 }
 
 /**
@@ -35,9 +42,16 @@ interface InternalMatch extends BracketMatch {
  * a walkover when its *other* feeder branch is permanently empty (dead) —
  * if the other branch is a real match that simply hasn't been played yet,
  * the new match stays PENDING with just the known side pre-filled.
+ *
+ * With `legs: 2`, every position that is structurally guaranteed to be a
+ * genuine two-sided tie (not a bye) also gets a mirrored second-leg match
+ * (same round/position, `leg: 2`, participants swapped) — see
+ * `resolveTwoLegTie` for how the aggregate winner of a two-legged tie is
+ * determined once both legs are played.
  */
 export function generateSingleEliminationBracket(
-  participantIds: string[]
+  participantIds: string[],
+  legs: 1 | 2 = 1
 ): BracketMatch[] {
   if (participantIds.length < 2) {
     throw new Error("Se necesitan al menos 2 participantes");
@@ -58,10 +72,12 @@ export function generateSingleEliminationBracket(
     const match: InternalMatch = {
       round: 1,
       position: i,
+      leg: 1,
       participantAId: a,
       participantBId: b,
       status: "PENDING",
       dead: !a && !b,
+      twoSided: !!a && !!b,
     };
     if (a && !b) {
       match.winnerId = a;
@@ -86,14 +102,17 @@ export function generateSingleEliminationBracket(
       const a = feederA.status === "PLAYED" ? feederA.winnerId ?? null : null;
       const b = feederB.status === "PLAYED" ? feederB.winnerId ?? null : null;
       const dead = feederA.dead && feederB.dead;
+      const twoSided = !feederA.dead && !feederB.dead;
 
       const match: InternalMatch = {
         round: r,
         position: i,
+        leg: 1,
         participantAId: a,
         participantBId: b,
         status: "PENDING",
         dead,
+        twoSided,
       };
 
       if (!dead) {
@@ -115,13 +134,91 @@ export function generateSingleEliminationBracket(
   // Dead matches (only possible when the field is much smaller than the
   // bracket size) can never be played — close them out so they don't block
   // the tournament from ever finishing.
-  return matches.map(({ dead, ...m }) => {
+  const resolved = matches.map(({ dead, twoSided, ...m }) => {
+    void twoSided;
     if (dead && m.status === "PENDING") {
       return { ...m, status: "PLAYED" as const, winnerId: null };
     }
     void dead;
     return m;
   });
+
+  if (legs !== 2) return resolved;
+
+  const secondLegs: BracketMatch[] = matches
+    .filter((m) => m.twoSided)
+    .map((m) => ({
+      round: m.round,
+      position: m.position,
+      leg: 2,
+      participantAId: m.participantBId,
+      participantBId: m.participantAId,
+      status: "PENDING" as const,
+    }));
+
+  return [...resolved, ...secondLegs];
+}
+
+/**
+ * Resolves a two-legged knockout tie once both legs have a score. Leg 2 is
+ * constructed as leg 1 with participants A/B swapped, so team P
+ * (leg1.participantAId) scored `leg1.scoreA + leg2.scoreB` in aggregate and
+ * `leg2.scoreB` away; team Q (leg1.participantBId) scored
+ * `leg1.scoreB + leg2.scoreA` in aggregate and `leg1.scoreB` away.
+ *
+ * Tiebreak order: aggregate goals, then away goals, then a penalty
+ * shootout (only consulted, and only required, if still level after away
+ * goals).
+ */
+export function resolveTwoLegTie(
+  leg1: {
+    participantAId: string;
+    participantBId: string;
+    scoreA: number;
+    scoreB: number;
+  },
+  leg2: { scoreA: number; scoreB: number },
+  penalties?: { scoreForLeg2A: number; scoreForLeg2B: number }
+): string {
+  const p = leg1.participantAId;
+  const q = leg1.participantBId;
+
+  const pAggregate = leg1.scoreA + leg2.scoreB;
+  const qAggregate = leg1.scoreB + leg2.scoreA;
+  if (pAggregate !== qAggregate) return pAggregate > qAggregate ? p : q;
+
+  const pAway = leg2.scoreB;
+  const qAway = leg1.scoreB;
+  if (pAway !== qAway) return pAway > qAway ? p : q;
+
+  if (!penalties || penalties.scoreForLeg2A === penalties.scoreForLeg2B) {
+    throw new Error(
+      "La eliminatoria sigue empatada tras el gol de visitante: se necesita un resultado de penales"
+    );
+  }
+  // scoreForLeg2A/B follow leg 2's own A/B slots: leg2.participantA is Q
+  // (home in leg 2), leg2.participantB is P (away in leg 2).
+  return penalties.scoreForLeg2A > penalties.scoreForLeg2B ? q : p;
+}
+
+/**
+ * Records an individual leg's own score for a two-legged tie. Unlike
+ * `recordMatchResult`, a drawn leg is completely normal here (the tie
+ * itself may still need a second leg, or `resolveTwoLegTie`, to be
+ * decided) — no winner is computed at the leg level.
+ */
+export function recordLegResult(
+  match: BracketMatch,
+  scoreA: number,
+  scoreB: number
+): BracketMatch {
+  if (match.status === "PLAYED") {
+    throw new Error("Este partido ya tiene resultado cargado");
+  }
+  if (!match.participantAId || !match.participantBId) {
+    throw new Error("Faltan participantes para cargar el resultado");
+  }
+  return { ...match, scoreA, scoreB, status: "PLAYED" };
 }
 
 /**
@@ -156,9 +253,16 @@ export function recordMatchResult(
   };
 }
 
-/** Circle-method round-robin scheduler. Odd counts get a bye (null) slot. */
+/**
+ * Circle-method round-robin scheduler. Odd counts get a bye (null) slot.
+ * With `legs: 2`, a mirrored second leg (same position, swapped A/B) is
+ * appended with round numbers continuing past the first leg's — this is a
+ * "double round-robin" / "ida y vuelta" league, where each leg is just an
+ * independent match contributing to the same table.
+ */
 export function generateRoundRobinSchedule(
-  participantIds: string[]
+  participantIds: string[],
+  legs: 1 | 2 = 1
 ): BracketMatch[] {
   if (participantIds.length < 2) {
     throw new Error("Se necesitan al menos 2 participantes");
@@ -191,6 +295,17 @@ export function generateRoundRobinSchedule(
     const rest = arr.slice(1);
     rest.unshift(rest.pop() as string | null);
     arr = [fixed, ...rest];
+  }
+
+  if (legs === 2) {
+    const maxRound = Math.max(...matches.map((m) => m.round));
+    const secondLeg = matches.map((m) => ({
+      ...m,
+      round: m.round + maxRound,
+      participantAId: m.participantBId,
+      participantBId: m.participantAId,
+    }));
+    return [...matches, ...secondLeg];
   }
 
   return matches;

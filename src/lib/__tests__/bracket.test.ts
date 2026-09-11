@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   generateSingleEliminationBracket,
   recordMatchResult,
+  recordLegResult,
+  resolveTwoLegTie,
   generateRoundRobinSchedule,
   computeStandings,
   type BracketMatch,
@@ -62,6 +64,126 @@ describe("generateSingleEliminationBracket", () => {
   it("rejects fields smaller than 2", () => {
     expect(() => generateSingleEliminationBracket(["a"])).toThrow();
   });
+
+  describe("legs: 2 (two-legged ties)", () => {
+    it("gives every genuinely two-sided position a swapped leg-2 match", () => {
+      const matches = generateSingleEliminationBracket(["a", "b", "c", "d"], 2);
+      const round1 = matches.filter((m) => m.round === 1);
+      const round2 = matches.filter((m) => m.round === 2);
+      // 2 positions in round 1, 1 in round 2, all two-sided -> doubled.
+      expect(round1).toHaveLength(4);
+      expect(round2).toHaveLength(2);
+
+      const leg1 = round1.find((m) => m.position === 0 && m.leg === 1)!;
+      const leg2 = round1.find((m) => m.position === 0 && m.leg === 2)!;
+      expect(leg2.participantAId).toBe(leg1.participantBId);
+      expect(leg2.participantBId).toBe(leg1.participantAId);
+      expect(leg2.status).toBe("PENDING");
+    });
+
+    it("does not give a bye/walkover position a second leg", () => {
+      // 3 participants -> size 4, round 1 has one real match + one bye.
+      const matches = generateSingleEliminationBracket(["a", "b", "c"], 2);
+      const round1 = matches.filter((m) => m.round === 1);
+      const byePosition = round1.find(
+        (m) => m.leg === 1 && (!m.participantAId || !m.participantBId)
+      )!;
+      const byeLeg2 = round1.find(
+        (m) => m.position === byePosition.position && m.leg === 2
+      );
+      expect(byeLeg2).toBeUndefined();
+
+      const realPosition = round1.find(
+        (m) => m.leg === 1 && m.participantAId && m.participantBId
+      )!;
+      const realLeg2 = round1.find(
+        (m) => m.position === realPosition.position && m.leg === 2
+      );
+      expect(realLeg2).toBeDefined();
+    });
+
+    it("still only produces a single match per position when legs is 1 (default)", () => {
+      const matches = generateSingleEliminationBracket(["a", "b", "c", "d"]);
+      expect(matches.filter((m) => (m.leg ?? 1) === 2)).toHaveLength(0);
+    });
+  });
+});
+
+describe("recordLegResult", () => {
+  it("allows a drawn leg score and does not compute a winner", () => {
+    const match: BracketMatch = {
+      round: 1,
+      position: 0,
+      leg: 1,
+      participantAId: "a",
+      participantBId: "b",
+      status: "PENDING",
+    };
+    const updated = recordLegResult(match, 1, 1);
+    expect(updated.status).toBe("PLAYED");
+    expect(updated.scoreA).toBe(1);
+    expect(updated.scoreB).toBe(1);
+    expect(updated.winnerId).toBeUndefined();
+  });
+
+  it("throws when the leg already has a result", () => {
+    const match: BracketMatch = {
+      round: 1,
+      position: 0,
+      leg: 1,
+      participantAId: "a",
+      participantBId: "b",
+      status: "PLAYED",
+    };
+    expect(() => recordLegResult(match, 1, 1)).toThrow();
+  });
+});
+
+describe("resolveTwoLegTie", () => {
+  const leg1 = { participantAId: "a", participantBId: "b" };
+
+  it("decides by aggregate goals", () => {
+    // a: 2 (leg1) + 1 (leg2, away) = 3. b: 1 (leg1) + 0 (leg2, away) = 1.
+    const winner = resolveTwoLegTie(
+      { ...leg1, scoreA: 2, scoreB: 1 },
+      { scoreA: 0, scoreB: 1 }
+    );
+    expect(winner).toBe("a");
+  });
+
+  it("falls back to away goals when aggregate is level", () => {
+    // Aggregate: a = 1(leg1) + 1(leg2 away) = 2; b = 1(leg1) + 1(leg2 away) = 2.
+    // Away goals: a's away goal (leg2.scoreB) = 1; b's away goal (leg1.scoreB) = 1... need a real split.
+    // leg1: a 2 - 1 b. leg2 (b home, a away): b 1 - 2 a.
+    // Aggregate: a = 2 + 2 = 4, b = 1 + 1 = 2 -> not level, adjust:
+    // Use: leg1: a 1 - 2 b (b ahead by 1). leg2: b(home) 0 - 1 a(away) (a wins leg2 by 1).
+    // Aggregate: a = 1 + 1 = 2, b = 2 + 0 = 2 -> level.
+    // Away goals: a's away goal = leg2.scoreB = 1. b's away goal = leg1.scoreB = 2.
+    const winner = resolveTwoLegTie(
+      { ...leg1, scoreA: 1, scoreB: 2 },
+      { scoreA: 0, scoreB: 1 }
+    );
+    // a away goals = 1, b away goals = 2 -> b wins on away goals.
+    expect(winner).toBe("b");
+  });
+
+  it("requires a penalty shootout when still level after away goals, and honors it", () => {
+    // leg1: a 1 - 1 b. leg2: b(home) 1 - 1 a(away). Aggregate 2-2, away goals 1-1.
+    expect(() =>
+      resolveTwoLegTie(
+        { ...leg1, scoreA: 1, scoreB: 1 },
+        { scoreA: 1, scoreB: 1 }
+      )
+    ).toThrow();
+
+    const winner = resolveTwoLegTie(
+      { ...leg1, scoreA: 1, scoreB: 1 },
+      { scoreA: 1, scoreB: 1 },
+      { scoreForLeg2A: 4, scoreForLeg2B: 5 }
+    );
+    // leg2's A is b (home in leg2), leg2's B is a (away in leg2) -> a wins penalties.
+    expect(winner).toBe("a");
+  });
 });
 
 describe("recordMatchResult", () => {
@@ -120,6 +242,27 @@ describe("generateRoundRobinSchedule", () => {
       )
     );
     expect(pairs.size).toBe((teams.length * (teams.length - 1)) / 2);
+  });
+
+  describe("legs: 2 (double round-robin)", () => {
+    it("doubles the fixtures with leg 2 rounds continuing past leg 1 and swapped participants", () => {
+      const single = generateRoundRobinSchedule(["a", "b", "c", "d"]);
+      const double = generateRoundRobinSchedule(["a", "b", "c", "d"], 2);
+      expect(double).toHaveLength(single.length * 2);
+
+      const maxRound = Math.max(...single.map((m) => m.round));
+      const leg1 = double.filter((m) => m.round <= maxRound);
+      const leg2 = double.filter((m) => m.round > maxRound);
+      expect(leg2).toHaveLength(leg1.length);
+
+      for (const m1 of leg1) {
+        const mirrored = leg2.find(
+          (m2) => m2.round === m1.round + maxRound && m2.position === m1.position
+        )!;
+        expect(mirrored.participantAId).toBe(m1.participantBId);
+        expect(mirrored.participantBId).toBe(m1.participantAId);
+      }
+    });
   });
 });
 

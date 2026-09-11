@@ -123,3 +123,35 @@ Auditoría con dos herramientas: `axe-core` (ya presente como dependencia transi
 
 1. Ningún pendiente bloqueante de accesibilidad, UX mobile, ni de lint. El sitio pasa axe-core limpio en las 17 rutas principales, tiene foco de teclado visible en todo el sitio, y `npm run lint` / `npm run build` quedan sin warnings.
 2. Seguir agregando funcionalidad según decida el usuario, sobre una base versionada en git, sin datos de prueba sueltos y ya auditada de diseño/UX/accesibilidad/lint.
+
+---
+
+## Sesión 7 (2026-09-11) — Formato "ida y vuelta" (Liga y Eliminación simple)
+
+**Contexto de arranque:** el usuario preguntó si podíamos armar un torneo tipo Arena17 "Grupos + Mata-Mata" (capturas reales de un campeonato en curso: fase de grupos ida+vuelta, llave de mata-mata ida+vuelta con gol de visitante, final a partido único, disputa de 3er puesto, aprobación de inscripción, invitación de jugador, escudos de equipo, pestaña de estadísticas del torneo, ajustes de puntuación manuales). Se confirmó que **nada de eso existe hoy** — quedó todo anotado como pendiente de alcance, sin tocar. El usuario pidió encarar, como siguiente paso concreto, solo el mecanismo de **ida y vuelta** para los dos formatos que ya existen (Liga y Eliminación simple), no el híbrido de grupos completo.
+
+**Decisiones de reglas confirmadas con el usuario antes de tocar código:**
+- Desempate en la llave a ida y vuelta: agregado de goles → gol de visitante → penales (solo si hace falta). Se le explicó que "goles a favor/en contra/PG/PE/PP" ya están cubiertos por el agregado: para exactamente 2 equipos jugando 2 partidos entre sí, esa comparación es matemáticamente la misma información que un agregado de goles — no aporta un criterio adicional.
+- La final también se juega a ida y vuelta, igual que el resto de las rondas (sin caso especial).
+- Ambos formatos reciben la funcionalidad.
+
+**Se usó modo plan** (`EnterPlanMode`/`ExitPlanMode`) antes de tocar el schema, dado el tamaño del cambio — el plan quedó aprobado por el usuario antes de programar.
+
+### Liga: doble round-robin
+`generateRoundRobinSchedule` (`src/lib/bracket.ts`) ahora acepta `legs: 1 | 2`; con `legs=2` agrega una segunda vuelta (mismos cruces, local/visitante invertido, números de fecha continuando después de la primera vuelta). No hizo falta tocar el schema ni `computeStandings` ni `StandingsTable` ni la rama `LEAGUE` de `submitMatchResultAction` — la vuelta es simplemente más fechas independientes que ya se suman solas a la tabla.
+
+### Eliminación simple: llave a dos partidos
+**Schema** (`prisma/schema.prisma`, migración `20260911154543_add_legs_and_penalty_scores`): `Tournament.legs`, `Match.leg` (`@default(1)`, así que todo torneo existente —incluido el `copa-relampago-1` sembrado— sigue funcionando exactamente igual), `Match.penaltyScoreA/B`, y el unique constraint de `Match` pasó a incluir `leg`.
+
+**Motor** (`src/lib/bracket.ts`): `generateSingleEliminationBracket` ahora calcula, además de `dead` (ya existía), un flag estructural nuevo `twoSided` — si una posición del bracket está *garantizada* a tener dos participantes reales (no un bye), calculable de antemano solo por la forma de la llave, sin depender de resultados. Con `legs=2`, cada posición `twoSided` recibe una segunda fila (`leg: 2`, participantes invertidos); un bye sigue teniendo una sola fila, igual que antes. Se agregaron `resolveTwoLegTie` (agregado → gol de visitante → penales, tira error si hace falta penales y no se cargaron) y `recordLegResult` (anota el resultado de una sola vuelta, permite empate). `recordMatchResult` (la función original) **no se tocó** y se sigue usando tal cual para todo lo que no es una llave a dos partidos.
+
+**Acción** (`src/lib/actions/tournaments.ts`): `submitMatchResultAction` ahora busca el partido "hermano" (misma ronda/posición, la otra vuelta) antes de decidir qué hacer — sin hermano, comportamiento idéntico a como era antes (incluida la restricción de "no empates" en eliminación a partido único). Con hermano: la ida se puede cargar con empate y no avanza nada todavía; la vuelta exige que la ida ya esté jugada (si no, error pidiendo cargar la ida primero — se simplificó a este orden fijo en vez de permitir cualquier orden, decisión de implementación no puesta a discusión porque no cambiaba ninguna regla ya acordada) y, al cargarla, resuelve el global y avanza al ganador a **ambas** filas (ida y vuelta) de la siguiente ronda mediante un nuevo helper `advanceWinner`.
+
+**UI:** `TournamentForm` tiene un selector nuevo "Formato de partidos" (Partido único / Ida e volta). `MatchResultForm` gana un checkbox opcional "¿Fue a penales?" que revela 2 campos extra, solo habilitado en el formulario de la vuelta. `BracketView` ahora agrupa los partidos de cada ronda por posición: si hay una sola fila se ve exactamente igual que antes; si hay dos, se muestra una tarjeta con "Ida"/"Volta" apiladas y, una vez jugadas ambas, el agregado (+ aviso de "venció por gol de visitante" o el marcador de penales si aplicó).
+
+**Verificación:** 9 tests nuevos en `bracket.test.ts` (20/20 en total) cubriendo el doble round-robin, qué posiciones reciben segunda vuelta y cuáles no, y las 3 ramas de `resolveTwoLegTie`. `tsc`, `lint` y `build` de producción limpios. Flujo completo probado en Chrome real (Playwright): una Liga de 4 con `legs=2` (12 fechas, local/visitante invertido correctamente en las fechas 4-6) y una Copa de 4 con `legs=2` jugando ambas semis (una decidida por agregado limpio, otra por gol de visitante) y la final forzada a penales — incluyendo confirmar que intentar cerrarla sin penales cuando hace falta se **rechaza** con el mensaje correcto, y que cargarlos sí resuelve el torneo a "Finalizado". Los torneos de prueba se borraron de la base al terminar.
+
+## Para continuar
+
+1. Sin pendientes bloqueantes del feature de ida y vuelta.
+2. Alcance parqueado, no iniciado (mencionado por el usuario pero explícitamente pospuesto): formato híbrido "Grupos + Mata-Mata", aprobación de inscripción por el admin, invitación de jugador a un cupo, escudos/insignias de equipo, pestaña de estadísticas del torneo, ajustes manuales de puntuación.

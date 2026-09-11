@@ -12,6 +12,8 @@ import {
   generateSingleEliminationBracket,
   generateRoundRobinSchedule,
   recordMatchResult,
+  recordLegResult,
+  resolveTwoLegTie,
 } from "@/lib/bracket";
 import type { ActionState } from "@/lib/actions/auth";
 
@@ -37,6 +39,7 @@ export async function createTournamentAction(
     platformId: formData.get("platformId"),
     ligaId: formData.get("ligaId") || undefined,
     feeType: formData.get("feeType"),
+    legs: formData.get("legs"),
     maxParticipants: Number(formData.get("maxParticipants")),
     registrationClosesAt: formData.get("registrationClosesAt"),
     startsAt: formData.get("startsAt"),
@@ -63,6 +66,7 @@ export async function createTournamentAction(
       slug,
       format: data.format,
       feeType: data.feeType,
+      legs: data.legs,
       maxParticipants: data.maxParticipants,
       registrationClosesAt: data.registrationClosesAt,
       startsAt: data.startsAt,
@@ -152,11 +156,12 @@ export async function drawTournamentAction(tournamentId: string) {
   }
 
   const shuffledIds = shuffle(tournament.participants.map((p) => p.id));
+  const legs = tournament.legs === 2 ? 2 : 1;
 
   const matches =
     tournament.format === "SINGLE_ELIM"
-      ? generateSingleEliminationBracket(shuffledIds)
-      : generateRoundRobinSchedule(shuffledIds);
+      ? generateSingleEliminationBracket(shuffledIds, legs)
+      : generateRoundRobinSchedule(shuffledIds, legs);
 
   await db.$transaction([
     ...matches.map((m) =>
@@ -165,6 +170,7 @@ export async function drawTournamentAction(tournamentId: string) {
           tournamentId,
           round: m.round,
           position: m.position,
+          leg: m.leg ?? 1,
           participantAId: m.participantAId,
           participantBId: m.participantBId,
           scoreA: m.scoreA ?? null,
@@ -183,10 +189,32 @@ export async function drawTournamentAction(tournamentId: string) {
   revalidatePath(`/torneos`);
 }
 
+async function advanceWinner(
+  tournamentId: string,
+  round: number,
+  position: number,
+  winnerId: string,
+  advanceAsA: boolean
+) {
+  const nextLegs = await db.match.findMany({
+    where: { tournamentId, round, position },
+  });
+  for (const nextLeg of nextLegs) {
+    // Leg 2 mirrors leg 1's participants, so the slot it fills is flipped.
+    const fillsA = nextLeg.leg === 1 ? advanceAsA : !advanceAsA;
+    await db.match.update({
+      where: { id: nextLeg.id },
+      data: fillsA ? { participantAId: winnerId } : { participantBId: winnerId },
+    });
+  }
+}
+
 export async function submitMatchResultAction(
   matchId: string,
   scoreA: number,
-  scoreB: number
+  scoreB: number,
+  penaltyScoreA?: number,
+  penaltyScoreB?: number
 ) {
   const user = await requireUser();
   const t = getDictionary(await getLocale());
@@ -233,49 +261,121 @@ export async function submitMatchResultAction(
       data: { scoreA, scoreB, winnerId, status: "PLAYED" },
     });
   } else {
-    if (scoreA === scoreB) {
-      throw new Error(e.noDrawsInKnockout);
-    }
-
-    const { updated, nextRound, nextPosition, advanceAsA } = recordMatchResult(
-      {
-        round: match.round,
-        position: match.position,
-        participantAId: match.participantAId,
-        participantBId: match.participantBId,
-        status: match.status,
-      },
-      scoreA,
-      scoreB
-    );
-
-    await db.match.update({
-      where: { id: matchId },
-      data: {
-        scoreA: updated.scoreA,
-        scoreB: updated.scoreB,
-        winnerId: updated.winnerId,
-        status: "PLAYED",
-      },
-    });
-
-    const nextMatch = await db.match.findUnique({
+    const sibling = await db.match.findUnique({
       where: {
-        tournamentId_round_position: {
+        tournamentId_round_position_leg: {
           tournamentId: match.tournamentId,
-          round: nextRound,
-          position: nextPosition,
+          round: match.round,
+          position: match.position,
+          leg: match.leg === 1 ? 2 : 1,
         },
       },
     });
 
-    if (nextMatch && updated.winnerId) {
+    if (!sibling) {
+      // Legacy path: a single-match tie (legs=1 tournament, or a bye
+      // position even under legs=2). Unchanged from before this feature.
+      if (scoreA === scoreB) {
+        throw new Error(e.noDrawsInKnockout);
+      }
+
+      const { updated, nextRound, nextPosition, advanceAsA } =
+        recordMatchResult(
+          {
+            round: match.round,
+            position: match.position,
+            participantAId: match.participantAId,
+            participantBId: match.participantBId,
+            status: match.status,
+          },
+          scoreA,
+          scoreB
+        );
+
       await db.match.update({
-        where: { id: nextMatch.id },
-        data: advanceAsA
-          ? { participantAId: updated.winnerId }
-          : { participantBId: updated.winnerId },
+        where: { id: matchId },
+        data: {
+          scoreA: updated.scoreA,
+          scoreB: updated.scoreB,
+          winnerId: updated.winnerId,
+          status: "PLAYED",
+        },
       });
+
+      if (updated.winnerId) {
+        await advanceWinner(
+          match.tournamentId,
+          nextRound,
+          nextPosition,
+          updated.winnerId,
+          advanceAsA
+        );
+      }
+    } else if (match.leg === 2 && sibling.status !== "PLAYED") {
+      throw new Error(e.legOneNotPlayedYet);
+    } else if (match.leg === 1) {
+      // First leg of a two-legged tie: a drawn leg is fine, nothing to
+      // advance yet — the tie isn't decided until leg 2 is played.
+      const updated = recordLegResult(
+        {
+          round: match.round,
+          position: match.position,
+          leg: 1,
+          participantAId: match.participantAId,
+          participantBId: match.participantBId,
+          status: match.status,
+        },
+        scoreA,
+        scoreB
+      );
+      await db.match.update({
+        where: { id: matchId },
+        data: { scoreA: updated.scoreA, scoreB: updated.scoreB, status: "PLAYED" },
+      });
+    } else {
+      // Second leg: this submission completes the tie. `sibling` here is
+      // leg 1 (already played, guaranteed by the check above).
+      if (!sibling.participantAId || !sibling.participantBId) {
+        throw new Error(e.missingParticipants);
+      }
+      const penalties =
+        penaltyScoreA != null && penaltyScoreB != null
+          ? { scoreForLeg2A: penaltyScoreA, scoreForLeg2B: penaltyScoreB }
+          : undefined;
+
+      const winnerId = resolveTwoLegTie(
+        {
+          participantAId: sibling.participantAId,
+          participantBId: sibling.participantBId,
+          scoreA: sibling.scoreA!,
+          scoreB: sibling.scoreB!,
+        },
+        { scoreA, scoreB },
+        penalties
+      );
+
+      await db.match.update({
+        where: { id: matchId },
+        data: {
+          scoreA,
+          scoreB,
+          winnerId,
+          status: "PLAYED",
+          penaltyScoreA: penalties?.scoreForLeg2A ?? null,
+          penaltyScoreB: penalties?.scoreForLeg2B ?? null,
+        },
+      });
+
+      const nextRound = match.round + 1;
+      const nextPosition = Math.floor(match.position / 2);
+      const advanceAsA = match.position % 2 === 0;
+      await advanceWinner(
+        match.tournamentId,
+        nextRound,
+        nextPosition,
+        winnerId,
+        advanceAsA
+      );
     }
   }
 

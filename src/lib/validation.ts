@@ -41,6 +41,7 @@ export function getTournamentSchema(t: Dictionary) {
     platformId: z.string().min(1, t.tournamentValidation.platformRequired),
     ligaId: z.string().optional(),
     feeType: z.enum(["FREE", "PAID"]),
+    legs: z.coerce.number().int().min(1).max(2).default(1),
     maxParticipants: z
       .number()
       .int()

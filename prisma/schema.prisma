@@ -79,6 +79,7 @@ model Tournament {
   format               TournamentFormat
   status               TournamentStatus  @default(REGISTRATION)
   feeType              FeeType           @default(FREE)
+  legs                 Int               @default(1)
   maxParticipants      Int
   registrationClosesAt DateTime
   startsAt             DateTime
@@ -118,15 +119,18 @@ model Match {
   tournament       Tournament    @relation(fields: [tournamentId], references: [id])
   round            Int
   position         Int
+  leg              Int           @default(1)
   participantAId   String?
   participantA     Participant?  @relation("ParticipantA", fields: [participantAId], references: [id])
   participantBId   String?
   participantB     Participant?  @relation("ParticipantB", fields: [participantBId], references: [id])
   scoreA           Int?
   scoreB           Int?
+  penaltyScoreA    Int?
+  penaltyScoreB    Int?
   winnerId         String?
   winner           Participant?  @relation("Winner", fields: [winnerId], references: [id])
   status           MatchStatus   @default(PENDING)
 
-  @@unique([tournamentId, round, position])
+  @@unique([tournamentId, round, position, leg])
 }
