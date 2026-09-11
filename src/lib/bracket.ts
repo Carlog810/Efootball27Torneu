@@ -394,3 +394,73 @@ export function computeStandings(
 
   return rows;
 }
+
+export interface AttackDefenseRow {
+  participantId: string;
+  goals: number;
+}
+
+export interface TournamentStats {
+  totalMatches: number;
+  totalGoals: number;
+  goalsPerMatch: number;
+  draws: number;
+  bestAttack: AttackDefenseRow[];
+  worstAttack: AttackDefenseRow[];
+  bestDefense: AttackDefenseRow[];
+  worstDefense: AttackDefenseRow[];
+}
+
+/**
+ * Aggregate stats for a whole tournament: totals plus best/worst attack
+ * (goals scored) and defense (goals conceded), built on top of
+ * `computeStandings` so goalsFor/goalsAgainst per team are computed once.
+ * Teams that haven't played yet are excluded from the attack/defense
+ * lists (nothing to rank them by).
+ */
+export function computeTournamentStats(
+  participantIds: string[],
+  matches: BracketMatch[],
+  topN = 3
+): TournamentStats {
+  const standings = computeStandings(participantIds, matches);
+  const played = standings.filter((row) => row.played > 0);
+
+  const playedMatches = matches.filter(
+    (m) => m.status === "PLAYED" && m.scoreA != null && m.scoreB != null
+  );
+  const totalMatches = playedMatches.length;
+  const totalGoals = playedMatches.reduce(
+    (sum, m) => sum + (m.scoreA ?? 0) + (m.scoreB ?? 0),
+    0
+  );
+  const draws = playedMatches.filter((m) => m.scoreA === m.scoreB).length;
+
+  const byAttackDesc = [...played].sort((a, b) => b.goalsFor - a.goalsFor);
+  const byAttackAsc = [...played].sort((a, b) => a.goalsFor - b.goalsFor);
+  const byDefenseAsc = [...played].sort(
+    (a, b) => a.goalsAgainst - b.goalsAgainst
+  );
+  const byDefenseDesc = [...played].sort(
+    (a, b) => b.goalsAgainst - a.goalsAgainst
+  );
+
+  return {
+    totalMatches,
+    totalGoals,
+    goalsPerMatch: totalMatches > 0 ? totalGoals / totalMatches : 0,
+    draws,
+    bestAttack: byAttackDesc
+      .slice(0, topN)
+      .map((r) => ({ participantId: r.participantId, goals: r.goalsFor })),
+    worstAttack: byAttackAsc
+      .slice(0, topN)
+      .map((r) => ({ participantId: r.participantId, goals: r.goalsFor })),
+    bestDefense: byDefenseAsc
+      .slice(0, topN)
+      .map((r) => ({ participantId: r.participantId, goals: r.goalsAgainst })),
+    worstDefense: byDefenseDesc
+      .slice(0, topN)
+      .map((r) => ({ participantId: r.participantId, goals: r.goalsAgainst })),
+  };
+}

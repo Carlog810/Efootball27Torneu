@@ -6,6 +6,7 @@ import {
   resolveTwoLegTie,
   generateRoundRobinSchedule,
   computeStandings,
+  computeTournamentStats,
   type BracketMatch,
 } from "../bracket";
 
@@ -319,5 +320,75 @@ describe("computeStandings", () => {
     ];
     const standings = computeStandings(ids, matches);
     expect(standings.every((r) => r.played === 0)).toBe(true);
+  });
+});
+
+describe("computeTournamentStats", () => {
+  // a: GF 7 GA 4, b: GF 1 GA 6, c: GF 5 GA 3.
+  const matches: BracketMatch[] = [
+    {
+      round: 1,
+      position: 0,
+      participantAId: "a",
+      participantBId: "b",
+      scoreA: 4,
+      scoreB: 1,
+      status: "PLAYED",
+    },
+    {
+      round: 1,
+      position: 1,
+      participantAId: "b",
+      participantBId: "c",
+      scoreA: 0,
+      scoreB: 2,
+      status: "PLAYED",
+    },
+    {
+      round: 2,
+      position: 0,
+      participantAId: "a",
+      participantBId: "c",
+      scoreA: 3,
+      scoreB: 3,
+      status: "PLAYED",
+    },
+  ];
+
+  it("computes totals across every played match", () => {
+    const stats = computeTournamentStats(["a", "b", "c"], matches);
+    expect(stats.totalMatches).toBe(3);
+    expect(stats.totalGoals).toBe(4 + 1 + 0 + 2 + 3 + 3);
+    expect(stats.goalsPerMatch).toBeCloseTo(13 / 3);
+    expect(stats.draws).toBe(1);
+  });
+
+  it("ranks best/worst attack and defense correctly", () => {
+    const stats = computeTournamentStats(["a", "b", "c"], matches);
+    expect(stats.bestAttack.map((r) => r.participantId)).toEqual(["a", "c", "b"]);
+    expect(stats.worstAttack.map((r) => r.participantId)).toEqual(["b", "c", "a"]);
+    expect(stats.bestDefense.map((r) => r.participantId)).toEqual(["c", "a", "b"]);
+    expect(stats.worstDefense.map((r) => r.participantId)).toEqual(["b", "a", "c"]);
+  });
+
+  it("excludes participants who haven't played yet", () => {
+    const stats = computeTournamentStats(["a", "b", "c", "d"], matches);
+    expect(stats.bestAttack).toHaveLength(3);
+    expect(stats.bestAttack.some((r) => r.participantId === "d")).toBe(false);
+  });
+
+  it("respects a smaller topN", () => {
+    const stats = computeTournamentStats(["a", "b", "c"], matches, 1);
+    expect(stats.bestAttack).toEqual([{ participantId: "a", goals: 7 }]);
+    expect(stats.worstDefense).toEqual([{ participantId: "b", goals: 6 }]);
+  });
+
+  it("returns zeros when nothing has been played", () => {
+    const stats = computeTournamentStats(["a", "b"], [
+      { round: 1, position: 0, participantAId: "a", participantBId: "b", status: "PENDING" },
+    ]);
+    expect(stats.totalMatches).toBe(0);
+    expect(stats.goalsPerMatch).toBe(0);
+    expect(stats.bestAttack).toHaveLength(0);
   });
 });

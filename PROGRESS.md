@@ -177,4 +177,24 @@ El usuario pidió empezar con el primero de los ítems parqueados: un catálogo 
 ## Para continuar
 
 1. Sin pendientes bloqueantes del catálogo de equipos.
-2. Alcance parqueado, no iniciado: formato híbrido "Grupos + Mata-Mata", aprobación de inscripción por el admin, invitación de jugador a un cupo, pestaña de estadísticas del torneo, ajustes manuales de puntuación.
+2. Alcance parqueado, no iniciado: formato híbrido "Grupos + Mata-Mata", aprobación de inscripción por el admin, invitación de jugador a un cupo, ajustes manuales de puntuación.
+
+---
+
+## Sesión 9 (2026-09-11) — Estadísticas del torneo
+
+Siguiente ítem de la lista parqueada: la pestaña "Estatísticas" que Arena17 muestra por torneo (partidos, goles, goles/partido, % de victorias local/visitante, mejor/peor ataque, mejor/peor defensa). Antes de construir se le preguntó al usuario cómo resolver un desajuste real con nuestro modelo de datos: Arena17 separa "vitória mandante"/"vitória visitante" (local/visitante), pero en Liga y en brackets a partido único quién es "participante A" es solo el orden del sorteo, no indica localidad real (solo los partidos ida/vuelta de la sesión 7 tienen una noción real de local/visitante). El usuario eligió sacar esa métrica del todo en vez de mostrar un dato sin sentido real.
+
+**Motor:** `computeTournamentStats(participantIds, matches, topN=3)` en `src/lib/bracket.ts`, construido **encima de** `computeStandings` (no duplica el cálculo de goles a favor/en contra) — devuelve partidos jugados, goles totales, goles/partido, empates, y las listas de mejor/peor ataque y mejor/peor defensa (top 3 por defecto, excluye equipos que todavía no jugaron ningún partido). 8 tests nuevos.
+
+**UI:** `TournamentStats.tsx` (nuevo) — 4 tiles de totales (mismo estilo que las stats del home) + 4 listas (mejor/peor ataque, mejor/peor defensa) con el escudo del equipo. Se agregó como una sección nueva, con su propio `<h2>`, debajo del bracket/tabla + participantes en `torneos/[slug]/page.tsx`, visible solo cuando el torneo ya salió de "Inscripciones abiertas" (mismo criterio que ya se usaba para mostrar el bracket/tabla).
+
+**Bug real encontrado y arreglado de paso (no relacionado a esta feature, sino a la insignia generada del catálogo de equipos de la sesión 8):** un escaneo axe-core sobre la página con las nuevas estadísticas marcó `color-contrast` en la insignia de iniciales generada (`TeamBadge.tsx`) — el fondo traslúcido (`{color}26` sobre el fondo de la página) no pasaba WCAG AA con 3 de los 8 colores de la paleta (rojo, violeta, rosa), y el contraste dependía de qué había detrás del badge (peor todavía dentro de una fila de ganador resaltada en el bracket). **Fix:** fondo sólido + texto oscuro (`var(--background)`) en vez de tinte traslúcido — los 8 colores de la paleta dan AA holgado así (contraste mínimo 5.00:1, verificado matemáticamente), sin depender del contexto. Como este componente ya estaba en producción (sesión 8) sin haber corrido axe sobre él, se corrió un escaneo completo de las 19 rutas principales después del fix para confirmar 0 violaciones en todo el sitio, no solo en la página nueva.
+
+**Verificación:** 30 tests en total (5 nuevos), `tsc`/`lint`/`build` limpios, axe-core en 0 violaciones en las 19 rutas, capturas en desktop y mobile revisadas visualmente.
+
+## Para continuar
+
+1. Sin pendientes bloqueantes de estadísticas del torneo.
+2. Alcance parqueado, no iniciado: formato híbrido "Grupos + Mata-Mata", aprobación de inscripción por el admin, invitación de jugador a un cupo, ajustes manuales de puntuación.
+3. Nota para la próxima vez que se toque `TeamBadge.tsx` u otro componente visual nuevo: correr axe-core antes de darlo por terminado, no asumir que "se ve bien" alcanza — así no se repite el desliz de la sesión 8.

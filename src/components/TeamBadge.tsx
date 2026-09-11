@@ -33,7 +33,11 @@ export function TeamBadge({
   return (
     <span
       className={`flex ${sizeClasses[size]} shrink-0 items-center justify-center rounded-full font-bold`}
-      style={{ backgroundColor: `${color}26`, color }}
+      // Solid background + dark text (not a translucent tint): contrast
+      // must hold regardless of what's behind the badge (e.g. a winner
+      // row's own bg-primary/10 highlight), which a translucent
+      // background can't guarantee for every palette color.
+      style={{ backgroundColor: color, color: "var(--background)" }}
       aria-hidden="true"
     >
       {initialsFor(name)}

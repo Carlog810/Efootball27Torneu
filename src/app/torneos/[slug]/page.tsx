@@ -12,6 +12,7 @@ import {
 import { JoinButton, LeaveButton, DrawButton } from "@/components/TournamentActions";
 import { BracketView } from "@/components/BracketView";
 import { StandingsTable } from "@/components/StandingsTable";
+import { TournamentStats } from "@/components/TournamentStats";
 import { TeamBadge } from "@/components/TeamBadge";
 import { Card } from "@/components/ui/Card";
 
@@ -197,6 +198,17 @@ export default async function TournamentDetailPage({
           </Card>
         </div>
       </div>
+
+      {tournament.status !== "REGISTRATION" && (
+        <div className="mt-8">
+          <h2 className="mb-3 text-lg font-semibold">{t.tournamentStats.title}</h2>
+          <TournamentStats
+            participants={tournament.participants}
+            matches={tournament.matches}
+            t={t}
+          />
+        </div>
+      )}
     </div>
   );
 }
