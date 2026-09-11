@@ -24,6 +24,7 @@ export default async function LigasPage() {
         <LinkButton href="/ligas/nueva">{t.ligasPage.create}</LinkButton>
       </div>
 
+      <h2 className="sr-only">{t.ligasPage.title}</h2>
       {ligas.length === 0 ? (
         <p className="rounded-xl border border-border bg-surface p-8 text-center text-muted">
           {t.ligasPage.empty}

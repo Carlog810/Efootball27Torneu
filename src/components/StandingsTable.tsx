@@ -110,6 +110,8 @@ export function StandingsTable({
                           matchId={m.id}
                           loadLabel={t.bracket.load}
                           loadingLabel={t.bracket.loading}
+                          scoreALabel={t.bracket.scoreA}
+                          scoreBLabel={t.bracket.scoreB}
                         />
                       )}
                     </Card>

@@ -100,7 +100,25 @@ Se retomaron los tres pendientes de la sesión 4:
 
 **Verificación:** `npx tsc --noEmit` limpio, 11/11 tests, capturas antes/después en ambos viewports para las 14 páginas.
 
+## Sesión 6 (2026-09-11) — Pasada de accesibilidad formal
+
+Auditoría con dos herramientas: `axe-core` (ya presente como dependencia transitiva de `eslint-plugin-jsx-a11y` vía `eslint-config-next`, inyectado por Playwright + Chrome real contra las 17 rutas principales, con y sin sesión) y una revisión manual de contraste de color (WCAG 2.1 AA, calculado programáticamente para toda la paleta de `globals.css`) + navegación por teclado (Tab a través de cada página, inspeccionando el `outline` calculado).
+
+**Hallazgo más importante — foco de teclado casi invisible en todo el sitio:** ni `Button`/`LinkButton` ni los links de texto definían un estilo de foco propio, así que dependían del `outline: auto` heurístico del navegador. En este tema oscuro esa heurística resolvía a menudo en `rgb(16,16,16)` (casi negro) sobre un fondo `#0b1120` — invisible para cualquiera navegando con teclado. **Fix:** una sola regla global en `globals.css` (`:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }`) que impone el mismo anillo verde (contraste 8.26:1) en todo el sitio; se sacó `outline-none` de los 3 inputs que lo tenían (`Field.tsx`, `Navbar.tsx` ×2) para que también lo hereden.
+
+**Otros hallazgos y fixes (todos verificados con axe = 0 violaciones antes/después, `tsc` y 11/11 tests):**
+- `select-name` (crítico): los 3 `<select>` de `TournamentFilters` no tenían nombre accesible (el texto de la primera `<option>` no cuenta como label del control). Se agregaron `<label className="sr-only">` asociados por `id`, igual para el buscador.
+- `heading-order` (moderado, 4 páginas): `/torneos`, `/ligas`, `/relampago` y `/ayuda` saltaban de `h1` a `h3` (las tarjetas de torneo/liga y las secciones de Ayuda son `h3` porque en la home cuelgan de un `h2` de sección — correcto ahí). Se agregó un `<h2 className="sr-only">` justo debajo del `h1` en esas 4 páginas para restaurar la jerarquía sin cambiar nada visual.
+- `link-in-text-block` (serio): el link a la Liga dentro de "Organiza Carlos Gaona · Liga eFootball Series" en el detalle de torneo dependía solo del color (`hover:underline`) para distinguirse del texto — ahora `underline` permanente.
+- **No detectado por axe pero encontrado a mano:** los dos inputs de marcador en `MatchResultForm` (usado en `BracketView` y `StandingsTable`, solo visible con sesión y permiso de reportar resultado — por eso el escaneo automático sin sesión no lo vio) no tenían ningún label. Se agregaron labels `sr-only` ("Gols do primeiro/segundo time" / "Goles del primer/segundo equipo") vía nuevas claves en el diccionario.
+- Se agregó un enlace "Saltar al contenido" (skip link) al layout, oculto hasta recibir foco, apuntando a `<main id="main-content" tabIndex={-1}>` — el `tabIndex={-1}` es necesario para que el foco real (no solo el scroll) se mueva al contenido al activarlo (si no, el foco cae en `<body>`, un problema clásico de skip links mal armados). Verificado con Tab+Enter en Chrome real.
+- Botones de bandera del selector de idioma: se agregó `aria-label` explícito (antes solo `title`, que no siempre se anuncia de forma confiable).
+- Contraste de color: toda la paleta actual ya pasa AAA/AA cómodamente (texto `muted` 7.2:1, `primary` 8.26:1, `danger` 5:1, etc. sobre `background`/`surface`) — no hizo falta tocar ningún color.
+
+**Fuera de alcance, detectado pero no tocado (no es de accesibilidad):** `npm run lint` marca 2 issues preexistentes sin relación — `Date.now()` llamado durante el render en `page.tsx`/`relampago/page.tsx` (regla `react-hooks/purity`) y un `<a>` que debería ser `<Link>` en `relampago/page.tsx`. Quedan para una futura pasada de calidad de código si se quiere.
+
 ## Para continuar
 
-1. No quedó pendiente nada bloqueante del pulido mobile — si se quiere seguir, lo próximo sería una pasada de accesibilidad más formal (contraste de color, foco de teclado, `aria-label`s en iconos/botones que hoy no lo tienen más allá del menú nuevo).
-2. Seguir agregando funcionalidad (lo que decida el usuario) sobre una base ahora versionada en git y sin datos de prueba sueltos.
+1. Ningún pendiente bloqueante de accesibilidad ni de UX mobile. El sitio pasa axe-core limpio en las 17 rutas principales (con y sin sesión) y tiene foco de teclado visible en todo el sitio.
+2. Opcional, sin urgencia: los 2 lint warnings mencionados arriba (no son de accesibilidad).
+3. Seguir agregando funcionalidad según decida el usuario, sobre una base versionada en git, sin datos de prueba sueltos y ya auditada de diseño/UX/accesibilidad.

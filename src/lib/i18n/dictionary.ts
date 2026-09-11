@@ -4,6 +4,9 @@ export const DEFAULT_LOCALE: Locale = "pt";
 
 const dictionaries = {
   pt: {
+    a11y: {
+      skipToContent: "Pular para o conteúdo",
+    },
     nav: {
       relampago: "Relâmpago",
       ligas: "Ligas",
@@ -61,9 +64,11 @@ const dictionaries = {
       participants: "participantes",
     },
     filters: {
+      searchLabel: "Buscar por nome",
       searchPlaceholder: "Buscar por nome...",
       platform: "Plataforma",
       status: "Status",
+      feeType: "Tipo de taxa",
       feeAll: "Grátis + Pago",
       free: "Grátis",
       paid: "Pago",
@@ -116,6 +121,8 @@ const dictionaries = {
       bye: "Bye",
       load: "Salvar",
       loading: "...",
+      scoreA: "Gols do primeiro time",
+      scoreB: "Gols do segundo time",
     },
     standings: {
       pos: "#",
@@ -290,6 +297,9 @@ const dictionaries = {
     },
   },
   es: {
+    a11y: {
+      skipToContent: "Saltar al contenido",
+    },
     nav: {
       relampago: "Relámpago",
       ligas: "Ligas",
@@ -347,9 +357,11 @@ const dictionaries = {
       participants: "participantes",
     },
     filters: {
+      searchLabel: "Buscar por nombre",
       searchPlaceholder: "Buscar por nombre...",
       platform: "Plataforma",
       status: "Estado",
+      feeType: "Tipo de tarifa",
       feeAll: "Gratis + Pago",
       free: "Gratis",
       paid: "Pago",
@@ -402,6 +414,8 @@ const dictionaries = {
       bye: "Bye",
       load: "Cargar",
       loading: "...",
+      scoreA: "Goles del primer equipo",
+      scoreB: "Goles del segundo equipo",
     },
     standings: {
       pos: "#",

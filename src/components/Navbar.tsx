@@ -75,7 +75,7 @@ export async function Navbar() {
             type="search"
             name="q"
             placeholder={t.nav.searchPlaceholder}
-            className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm outline-none focus:border-primary"
+            className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm focus:border-primary"
           />
         </form>
 
@@ -99,7 +99,7 @@ export async function Navbar() {
                   type="search"
                   name="q"
                   placeholder={t.nav.searchPlaceholder}
-                  className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-primary"
+                  className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm focus:border-primary"
                 />
               </form>
               <nav className="mb-3 flex flex-col gap-1 border-b border-border pb-3">

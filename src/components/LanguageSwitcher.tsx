@@ -20,6 +20,7 @@ export function LanguageSwitcher({ current }: { current: Locale }) {
           <button
             type="submit"
             title={opt.label}
+            aria-label={opt.locale === "pt" ? "Português" : "Español"}
             aria-current={current === opt.locale}
             className={`rounded-md px-1.5 py-1 text-sm transition-opacity ${
               current === opt.locale

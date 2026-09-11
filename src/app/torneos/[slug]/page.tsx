@@ -74,7 +74,7 @@ export default async function TournamentDetailPage({
                 {" · "}
                 <Link
                   href={`/ligas/${tournament.liga.slug}`}
-                  className="text-primary hover:underline"
+                  className="text-primary underline"
                 >
                   {tournament.liga.name}
                 </Link>

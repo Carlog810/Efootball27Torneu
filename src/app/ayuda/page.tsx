@@ -25,6 +25,7 @@ export default async function AyudaPage() {
       <h1 className="mb-2 text-2xl font-bold">{t.ayuda.title}</h1>
       <p className="mb-8 text-sm text-muted">{t.ayuda.intro}</p>
 
+      <h2 className="sr-only">{t.ayuda.title}</h2>
       <div className="flex flex-col gap-4">
         {t.ayuda.sections.map((section) => (
           <Section key={section.title} title={section.title}>

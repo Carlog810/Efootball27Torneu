@@ -24,6 +24,7 @@ export default async function RelampagoPage() {
         </div>
       </div>
 
+      <h2 className="sr-only">{t.relampago.title}</h2>
       {tournaments.length === 0 ? (
         <div className="rounded-xl border border-border bg-surface p-10 text-center text-muted">
           <p className="text-lg">{t.relampago.emptyTitle}</p>

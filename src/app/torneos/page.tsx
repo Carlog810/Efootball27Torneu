@@ -52,6 +52,7 @@ export default async function TorneosPage({
         <TournamentFilters platforms={platforms} defaults={params} t={t} />
       </div>
 
+      <h2 className="sr-only">{t.tournamentsPage.title}</h2>
       {tournaments.length === 0 ? (
         <p className="rounded-xl border border-border bg-surface p-8 text-center text-muted">
           {t.tournamentsPage.empty}{" "}

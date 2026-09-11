@@ -39,6 +39,16 @@ body {
   color: var(--foreground);
 }
 
+/*
+ * The browser's default `outline: auto` picks a heuristic color that often
+ * resolves to near-black, which is invisible against this dark theme.
+ * Define one explicit, high-contrast focus ring for every element instead.
+ */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
 ::selection {
   background: var(--primary);
   color: var(--primary-foreground);

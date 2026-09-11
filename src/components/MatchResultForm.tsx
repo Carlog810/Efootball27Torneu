@@ -9,10 +9,14 @@ export function MatchResultForm({
   matchId,
   loadLabel,
   loadingLabel,
+  scoreALabel,
+  scoreBLabel,
 }: {
   matchId: string;
   loadLabel: string;
   loadingLabel: string;
+  scoreALabel: string;
+  scoreBLabel: string;
 }) {
   const [scoreA, setScoreA] = useState("0");
   const [scoreB, setScoreB] = useState("0");
@@ -40,15 +44,25 @@ export function MatchResultForm({
         });
       }}
     >
+      <label className="sr-only" htmlFor={`${matchId}-scoreA`}>
+        {scoreALabel}
+      </label>
       <input
+        id={`${matchId}-scoreA`}
         type="number"
         min={0}
         value={scoreA}
         onChange={(e) => setScoreA(e.target.value)}
         className="w-14 rounded-md border border-border bg-background px-2 py-1 text-center text-sm"
       />
-      <span className="text-muted">-</span>
+      <span className="text-muted" aria-hidden="true">
+        -
+      </span>
+      <label className="sr-only" htmlFor={`${matchId}-scoreB`}>
+        {scoreBLabel}
+      </label>
       <input
+        id={`${matchId}-scoreB`}
         type="number"
         min={0}
         value={scoreB}
