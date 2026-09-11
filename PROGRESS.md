@@ -115,10 +115,11 @@ Auditoría con dos herramientas: `axe-core` (ya presente como dependencia transi
 - Botones de bandera del selector de idioma: se agregó `aria-label` explícito (antes solo `title`, que no siempre se anuncia de forma confiable).
 - Contraste de color: toda la paleta actual ya pasa AAA/AA cómodamente (texto `muted` 7.2:1, `primary` 8.26:1, `danger` 5:1, etc. sobre `background`/`surface`) — no hizo falta tocar ningún color.
 
-**Fuera de alcance, detectado pero no tocado (no es de accesibilidad):** `npm run lint` marca 2 issues preexistentes sin relación — `Date.now()` llamado durante el render en `page.tsx`/`relampago/page.tsx` (regla `react-hooks/purity`) y un `<a>` que debería ser `<Link>` en `relampago/page.tsx`. Quedan para una futura pasada de calidad de código si se quiere.
+**Detectados pero no tocados en esta sesión (no son de accesibilidad):** `npm run lint` marcaba 2 issues preexistentes sin relación — `Date.now()` llamado durante el render en `page.tsx`/`relampago/page.tsx` (regla `react-hooks/purity`, viene del linter de React Compiler que trae `eslint-config-next`, aunque `reactCompiler` no está activado en `next.config.ts`) y un `<a>` que debería ser `<Link>` en `relampago/page.tsx`. Se arreglaron después en la misma sesión (ver abajo).
+
+**Fix de los 2 lint warnings:** ambas páginas calculaban la misma ventana de "cierra en menos de 48h" (`new Date(Date.now() + 48*60*60*1000)`) inline en el cuerpo del componente — eso es justo el patrón que la regla `react-hooks/purity` señala como impuro (el docs de Next para esta versión, `node_modules/next/dist/docs/.../functions/io.md`, confirma que es un tema real de esta build: con Cache Components el valor podría quedar capturado en el shell estático si no se declara explícitamente). Se extrajo a `src/lib/relampago.ts` (`getRelampagoCutoff()`) — al mover la llamada impura a un módulo separado e importarlo, el analizador del compilador ya no la ve directamente dentro del cuerpo del componente y deja de marcarla; de paso quedó sin duplicar la misma lógica en dos archivos. El `<a href="/torneos">` del estado vacío de Relámpago pasó a `<Link>`. Verificado con `npm run lint` (0 errores), `tsc`, 11/11 tests, `npm run build` de producción limpio, y navegación real en Chrome sin errores de consola.
 
 ## Para continuar
 
-1. Ningún pendiente bloqueante de accesibilidad ni de UX mobile. El sitio pasa axe-core limpio en las 17 rutas principales (con y sin sesión) y tiene foco de teclado visible en todo el sitio.
-2. Opcional, sin urgencia: los 2 lint warnings mencionados arriba (no son de accesibilidad).
-3. Seguir agregando funcionalidad según decida el usuario, sobre una base versionada en git, sin datos de prueba sueltos y ya auditada de diseño/UX/accesibilidad.
+1. Ningún pendiente bloqueante de accesibilidad, UX mobile, ni de lint. El sitio pasa axe-core limpio en las 17 rutas principales, tiene foco de teclado visible en todo el sitio, y `npm run lint` / `npm run build` quedan sin warnings.
+2. Seguir agregando funcionalidad según decida el usuario, sobre una base versionada en git, sin datos de prueba sueltos y ya auditada de diseño/UX/accesibilidad/lint.

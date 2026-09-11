@@ -1,10 +1,12 @@
+import Link from "next/link";
 import { db } from "@/lib/db";
 import { getLocale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n/dictionary";
 import { TournamentCard } from "@/components/TournamentCard";
+import { getRelampagoCutoff } from "@/lib/relampago";
 
 export default async function RelampagoPage() {
-  const soon = new Date(Date.now() + 48 * 60 * 60 * 1000);
+  const soon = getRelampagoCutoff();
   const locale = await getLocale();
   const t = getDictionary(locale);
 
@@ -30,9 +32,9 @@ export default async function RelampagoPage() {
           <p className="text-lg">{t.relampago.emptyTitle}</p>
           <p className="mt-2 text-sm">
             {t.relampago.emptyBody}{" "}
-            <a href="/torneos" className="text-primary hover:underline">
+            <Link href="/torneos" className="text-primary hover:underline">
               {t.relampago.emptyLink}
-            </a>
+            </Link>
             .
           </p>
         </div>

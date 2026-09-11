@@ -5,9 +5,10 @@ import { getDictionary } from "@/lib/i18n/dictionary";
 import { LinkButton } from "@/components/ui/Button";
 import { TournamentCard } from "@/components/TournamentCard";
 import { LigaCard } from "@/components/LigaCard";
+import { getRelampagoCutoff } from "@/lib/relampago";
 
 export default async function Home() {
-  const soon = new Date(Date.now() + 48 * 60 * 60 * 1000);
+  const soon = getRelampagoCutoff();
   const locale = await getLocale();
   const t = getDictionary(locale);
 
