@@ -1,4 +1,5 @@
 import { MatchResultForm } from "@/components/MatchResultForm";
+import { TeamBadge } from "@/components/TeamBadge";
 import { Card } from "@/components/ui/Card";
 import type { Dictionary } from "@/lib/i18n/dictionary";
 
@@ -6,6 +7,7 @@ interface ParticipantRef {
   id: string;
   teamName: string;
   userId: string;
+  team: { crestUrl: string | null } | null;
 }
 
 export interface MatchWithParticipants {
@@ -40,7 +42,15 @@ function ParticipantRow({
         isWinner ? "bg-primary/10 font-medium text-primary" : ""
       }`}
     >
-      <span>{participant?.teamName ?? byeLabel}</span>
+      <span className="flex min-w-0 items-center gap-2">
+        {participant && (
+          <TeamBadge
+            name={participant.teamName}
+            crestUrl={participant.team?.crestUrl}
+          />
+        )}
+        <span className="truncate">{participant?.teamName ?? byeLabel}</span>
+      </span>
       <span className="tabular-nums">{score ?? "-"}</span>
     </div>
   );

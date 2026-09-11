@@ -62,6 +62,13 @@ export function getMatchResultSchema() {
   });
 }
 
+export function getTeamSchema(t: Dictionary) {
+  return z.object({
+    name: z.string().min(3, t.tournamentValidation.nameMin),
+    crestUrl: z.string().url().optional().or(z.literal("")),
+  });
+}
+
 export function getLigaSchema(t: Dictionary) {
   return z.object({
     name: z.string().min(3, t.tournamentValidation.nameMin),

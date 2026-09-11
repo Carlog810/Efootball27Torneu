@@ -12,6 +12,7 @@ export async function Navbar() {
   const links = [
     { href: "/relampago", label: t.nav.relampago },
     { href: "/ligas", label: t.nav.ligas },
+    { href: "/equipos", label: t.nav.equipos },
     { href: "/torneos", label: t.nav.torneos },
     { href: "/rankings", label: t.nav.rankings },
     { href: "/ayuda", label: t.nav.ayuda },

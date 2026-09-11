@@ -12,6 +12,7 @@ import {
 import { JoinButton, LeaveButton, DrawButton } from "@/components/TournamentActions";
 import { BracketView } from "@/components/BracketView";
 import { StandingsTable } from "@/components/StandingsTable";
+import { TeamBadge } from "@/components/TeamBadge";
 import { Card } from "@/components/ui/Card";
 
 export default async function TournamentDetailPage({
@@ -27,22 +28,29 @@ export default async function TournamentDetailPage({
   const t = getDictionary(locale);
   const d = t.tournamentDetail;
 
-  const tournament = await db.tournament.findUnique({
-    where: { slug },
-    include: {
-      platform: true,
-      liga: true,
-      organizer: true,
-      participants: { include: { user: true } },
-      matches: {
-        include: {
-          participantA: { select: { id: true, teamName: true, userId: true } },
-          participantB: { select: { id: true, teamName: true, userId: true } },
+  const [tournament, teams] = await Promise.all([
+    db.tournament.findUnique({
+      where: { slug },
+      include: {
+        platform: true,
+        liga: true,
+        organizer: true,
+        participants: { include: { user: true, team: true } },
+        matches: {
+          include: {
+            participantA: {
+              select: { id: true, teamName: true, userId: true, team: true },
+            },
+            participantB: {
+              select: { id: true, teamName: true, userId: true, team: true },
+            },
+          },
+          orderBy: [{ round: "asc" }, { position: "asc" }],
         },
-        orderBy: [{ round: "asc" }, { position: "asc" }],
       },
-    },
-  });
+    }),
+    db.team.findMany({ orderBy: { name: "asc" } }),
+  ]);
 
   if (!tournament) notFound();
 
@@ -95,6 +103,10 @@ export default async function TournamentDetailPage({
               tournamentId={tournament.id}
               label={d.join}
               pendingLabel={d.joining}
+              teams={teams}
+              selectLabel={d.selectTeam}
+              noTeamsLabel={d.noTeams}
+              createTeamLabel={d.createTeamLink}
             />
           )}
           {canLeave && (
@@ -169,7 +181,10 @@ export default async function TournamentDetailPage({
                   key={p.id}
                   className="flex items-center justify-between p-3 text-sm"
                 >
-                  <span>{p.teamName}</span>
+                  <span className="flex items-center gap-2">
+                    <TeamBadge name={p.teamName} crestUrl={p.team?.crestUrl} />
+                    {p.teamName}
+                  </span>
                   <Link
                     href={`/jugadores/${p.user.playerTag}`}
                     className="text-muted hover:text-foreground"

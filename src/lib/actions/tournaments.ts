@@ -82,7 +82,7 @@ export async function createTournamentAction(
   redirect(`/torneos/${tournament.slug}`);
 }
 
-export async function joinTournamentAction(tournamentId: string) {
+export async function joinTournamentAction(tournamentId: string, teamId: string) {
   const user = await requireUser();
   const t = getDictionary(await getLocale());
   const e = t.tournamentErrors;
@@ -99,6 +99,9 @@ export async function joinTournamentAction(tournamentId: string) {
     throw new Error(e.full);
   }
 
+  const team = await db.team.findUnique({ where: { id: teamId } });
+  if (!team) throw new Error(e.teamNotFound);
+
   const existing = await db.participant.findUnique({
     where: { tournamentId_userId: { tournamentId, userId: user.id } },
   });
@@ -108,7 +111,8 @@ export async function joinTournamentAction(tournamentId: string) {
     data: {
       tournamentId,
       userId: user.id,
-      teamName: user.playerTag,
+      teamId: team.id,
+      teamName: team.name,
     },
   });
 

@@ -10,6 +10,7 @@ const dictionaries = {
     nav: {
       relampago: "Relâmpago",
       ligas: "Ligas",
+      equipos: "Equipes",
       torneos: "Torneios",
       rankings: "Rankings",
       ayuda: "Ajuda",
@@ -117,6 +118,9 @@ const dictionaries = {
       leaving: "Saindo...",
       draw: "Realizar sorteio",
       drawing: "Sorteando...",
+      selectTeam: "Time",
+      noTeams: "Ainda não há times cadastrados.",
+      createTeamLink: "Criar um time",
     },
     bracket: {
       final: "Final",
@@ -145,6 +149,20 @@ const dictionaries = {
       goalDiff: "SG",
       points: "Pts",
       matchday: "Rodada",
+    },
+    teamsPage: {
+      title: "Equipes",
+      subtitle: "Catálogo de equipes da comunidade, com escudo.",
+      create: "Criar equipe",
+      empty: "Ainda não há equipes cadastradas.",
+    },
+    teamForm: {
+      pageTitle: "Criar equipe",
+      name: "Nome da equipe",
+      crestUrl: "URL do escudo (opcional)",
+      nameTaken: "Já existe uma equipe com esse nome",
+      submit: "Criar equipe",
+      submitting: "Criando...",
     },
     ligasPage: {
       title: "Ligas",
@@ -294,6 +312,7 @@ const dictionaries = {
       notFound: "Torneio não encontrado",
       registrationClosed: "As inscrições para este torneio já fecharam",
       full: "O torneio já atingiu o número máximo de participantes",
+      teamNotFound: "Selecione uma equipe válida para se inscrever",
       alreadyJoined: "Você já está inscrito neste torneio",
       cannotLeaveStarted: "Você não pode sair de um torneio que já começou",
       onlyOrganizerDraw: "Somente o organizador pode fazer o sorteio",
@@ -315,6 +334,7 @@ const dictionaries = {
     nav: {
       relampago: "Relámpago",
       ligas: "Ligas",
+      equipos: "Equipos",
       torneos: "Torneos",
       rankings: "Rankings",
       ayuda: "Ayuda",
@@ -422,6 +442,9 @@ const dictionaries = {
       leaving: "Saliendo...",
       draw: "Realizar sorteo",
       drawing: "Sorteando...",
+      selectTeam: "Equipo",
+      noTeams: "Todavía no hay equipos creados.",
+      createTeamLink: "Crear un equipo",
     },
     bracket: {
       final: "Final",
@@ -450,6 +473,20 @@ const dictionaries = {
       goalDiff: "DG",
       points: "Pts",
       matchday: "Fecha",
+    },
+    teamsPage: {
+      title: "Equipos",
+      subtitle: "Catálogo de equipos de la comunidad, con escudo.",
+      create: "Crear equipo",
+      empty: "Todavía no hay equipos creados.",
+    },
+    teamForm: {
+      pageTitle: "Crear equipo",
+      name: "Nombre del equipo",
+      crestUrl: "URL del escudo (opcional)",
+      nameTaken: "Ya existe un equipo con ese nombre",
+      submit: "Crear equipo",
+      submitting: "Creando...",
     },
     ligasPage: {
       title: "Ligas",
@@ -599,6 +636,7 @@ const dictionaries = {
       notFound: "Torneo no encontrado",
       registrationClosed: "La inscripción para este torneo ya cerró",
       full: "El torneo ya alcanzó el cupo máximo",
+      teamNotFound: "Selecciona un equipo válido para inscribirte",
       alreadyJoined: "Ya estás inscrito en este torneo",
       cannotLeaveStarted: "No puedes salir de un torneo que ya comenzó",
       onlyOrganizerDraw: "Solo el organizador puede realizar el sorteo",

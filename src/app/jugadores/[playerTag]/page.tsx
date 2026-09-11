@@ -5,6 +5,7 @@ import { getLocale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n/dictionary";
 import { Card } from "@/components/ui/Card";
 import { TournamentStatusBadge } from "@/components/ui/Badge";
+import { TeamBadge } from "@/components/TeamBadge";
 
 export default async function PlayerProfilePage({
   params,
@@ -23,6 +24,7 @@ export default async function PlayerProfilePage({
           tournament: { include: { platform: true } },
           matchesAsA: { where: { status: "PLAYED" } },
           matchesAsB: { where: { status: "PLAYED" } },
+          team: true,
         },
         orderBy: { joinedAt: "desc" },
       },
@@ -81,11 +83,14 @@ export default async function PlayerProfilePage({
               href={`/torneos/${p.tournament.slug}`}
               className="flex items-center justify-between p-4 text-sm hover:bg-surface-hover"
             >
-              <div>
-                <p className="font-medium">{p.tournament.name}</p>
-                <p className="text-xs text-muted">
-                  {p.tournament.platform.name} · {p.teamName}
-                </p>
+              <div className="flex items-center gap-2">
+                <TeamBadge name={p.teamName} crestUrl={p.team?.crestUrl} />
+                <div>
+                  <p className="font-medium">{p.tournament.name}</p>
+                  <p className="text-xs text-muted">
+                    {p.tournament.platform.name} · {p.teamName}
+                  </p>
+                </div>
               </div>
               <TournamentStatusBadge status={p.tournament.status} t={t} />
             </Link>

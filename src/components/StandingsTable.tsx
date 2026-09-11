@@ -1,5 +1,6 @@
 import { computeStandings } from "@/lib/bracket";
 import { MatchResultForm } from "@/components/MatchResultForm";
+import { TeamBadge } from "@/components/TeamBadge";
 import { Card } from "@/components/ui/Card";
 import type { MatchWithParticipants } from "@/components/BracketView";
 import type { Dictionary } from "@/lib/i18n/dictionary";
@@ -11,13 +12,17 @@ export function StandingsTable({
   currentUserId,
   t,
 }: {
-  participants: { id: string; teamName: string }[];
+  participants: {
+    id: string;
+    teamName: string;
+    team: { crestUrl: string | null } | null;
+  }[];
   matches: MatchWithParticipants[];
   organizerId: string;
   currentUserId?: string;
   t: Dictionary;
 }) {
-  const nameById = new Map(participants.map((p) => [p.id, p.teamName]));
+  const participantById = new Map(participants.map((p) => [p.id, p]));
   const s = t.standings;
 
   const standings = computeStandings(
@@ -58,7 +63,13 @@ export function StandingsTable({
               <tr key={row.participantId} className="border-b border-border/50">
                 <td className="py-2 pr-2 text-muted">{i + 1}</td>
                 <td className="py-2 pr-2 font-medium">
-                  {nameById.get(row.participantId)}
+                  <span className="flex items-center gap-2">
+                    <TeamBadge
+                      name={participantById.get(row.participantId)?.teamName ?? ""}
+                      crestUrl={participantById.get(row.participantId)?.team?.crestUrl}
+                    />
+                    {participantById.get(row.participantId)?.teamName}
+                  </span>
                 </td>
                 <td className="py-2 pr-2 text-center">{row.played}</td>
                 <td className="py-2 pr-2 text-center">{row.won}</td>
@@ -97,13 +108,29 @@ export function StandingsTable({
                   return (
                     <Card key={m.id} className="p-3">
                       <div className="flex items-center justify-between text-sm">
-                        <span>{m.participantA?.teamName}</span>
+                        <span className="flex min-w-0 items-center gap-2">
+                          {m.participantA && (
+                            <TeamBadge
+                              name={m.participantA.teamName}
+                              crestUrl={m.participantA.team?.crestUrl}
+                            />
+                          )}
+                          <span className="truncate">{m.participantA?.teamName}</span>
+                        </span>
                         <span className="tabular-nums text-muted">
                           {m.status === "PLAYED"
                             ? `${m.scoreA} - ${m.scoreB}`
                             : "vs"}
                         </span>
-                        <span>{m.participantB?.teamName}</span>
+                        <span className="flex min-w-0 items-center gap-2">
+                          <span className="truncate">{m.participantB?.teamName}</span>
+                          {m.participantB && (
+                            <TeamBadge
+                              name={m.participantB.teamName}
+                              crestUrl={m.participantB.team?.crestUrl}
+                            />
+                          )}
+                        </span>
                       </div>
                       {canReport && (
                         <MatchResultForm

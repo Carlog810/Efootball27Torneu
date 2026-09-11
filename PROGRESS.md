@@ -154,4 +154,27 @@ Auditoría con dos herramientas: `axe-core` (ya presente como dependencia transi
 ## Para continuar
 
 1. Sin pendientes bloqueantes del feature de ida y vuelta.
-2. Alcance parqueado, no iniciado (mencionado por el usuario pero explícitamente pospuesto): formato híbrido "Grupos + Mata-Mata", aprobación de inscripción por el admin, invitación de jugador a un cupo, escudos/insignias de equipo, pestaña de estadísticas del torneo, ajustes manuales de puntuación.
+2. Alcance parqueado, no iniciado (mencionado por el usuario pero explícitamente pospuesto): formato híbrido "Grupos + Mata-Mata", aprobación de inscripción por el admin, invitación de jugador a un cupo, pestaña de estadísticas del torneo, ajustes manuales de puntuación.
+
+---
+
+## Sesión 8 (2026-09-11) — Catálogo de equipos con escudo
+
+El usuario pidió empezar con el primero de los ítems parqueados: un catálogo de equipos con escudo, compartido entre todos los torneos (como en Arena17). Antes de tocar código se aclaró un punto importante: **Claude no va a salir a buscar/descargar logos reales de clubes** para empaquetarlos en el proyecto (son marca/derechos de terceros, aunque el uso sea no comercial no es una decisión que le corresponda tomar a Claude por el usuario). En cambio, el escudo de cada equipo es una URL que el propio usuario carga — mismo patrón que ya existía (sin usarse en ningún formulario) para `coverImage` de torneos/ligas. Si un equipo no tiene URL cargada, se genera automáticamente una insignia con las iniciales sobre un color determinístico (mismo estilo visual que ya usaba el avatar del perfil de jugador, generalizado). Se usó modo plan antes de tocar el schema.
+
+**Modelo de datos:** `prisma/schema.prisma` (migración `20260911162024_add_team_catalog`) — modelo `Team` nuevo (`id`, `name` único, `crestUrl` opcional, `createdAt`), catálogo global sin atarlo a plataforma ni liga. `Participant.teamId` opcional (FK a `Team`) se agregó **al lado de** `teamName` (que sigue existiendo tal cual, ahora como copia del nombre del equipo al momento de inscribirse) — así ningún participante existente (incluida la semilla `copa-relampago-1`) se rompe; simplemente no tiene equipo vinculado y cae al respaldo de insignia generada.
+
+**Insignia:** `src/lib/teamBadge.ts` (nuevo, con tests: `pickTeamColor` — hash determinístico de 8 colores tomados de la misma familia de acento que ya usa el tema oscuro — e `initialsFor`). `src/components/TeamBadge.tsx` renderiza `<img>` si hay `crestUrl` (decorativo, `alt=""`, porque en todos los usos el nombre del equipo ya se muestra como texto al lado) o el círculo de iniciales generado si no.
+
+**Catálogo:** `/equipos` (listado, `TeamCard`) y `/equipos/nuevo` (formulario, `TeamForm` + `createTeamAction`), calcados de `ligas`/`LigaForm`/`createLigaAction`. Nombre de equipo único (rechaza duplicados con un error de campo). Se agregó "Equipos" al Navbar.
+
+**Inscripción:** `joinTournamentAction` ahora exige `teamId` (antes solo autocompletaba `teamName` con el player tag). `JoinButton` (`TournamentActions.tsx`) pasó de un botón único a un `<Select>` de equipos + botón; si el catálogo está vacío, muestra un link a "Crear un equipo" en vez de un select inutilizable.
+
+**Escudos en las vistas existentes:** se agregó `TeamBadge` en el bracket (`BracketView.tsx`), la tabla de posiciones y el calendario de partidos (`StandingsTable.tsx`), el listado de participantes del torneo (`torneos/[slug]/page.tsx`) y el historial del perfil de jugador (`jugadores/[playerTag]/page.tsx`) — todos ya mostraban `teamName`, solo se les agregó el badge al lado.
+
+**Verificación:** 5 tests nuevos (25/25 en total), `tsc`/`lint`/`build` limpios (se silenció con un comentario puntual el warning de `@next/next/no-img-element`, ya que `crestUrl` es un host arbitrario del usuario — no amerita configurar `next/image` para un ícono chico). Flujo completo en Chrome real: creación de 2 equipos (uno con `crestUrl`, uno sin — confirmado que el sin-escudo no renderiza ningún `<img>`, solo la insignia generada), un intento de nombre duplicado correctamente rechazado, inscripción a un torneo nuevo eligiendo equipo, escudo visible en la lista de participantes y en el perfil del jugador, y confirmado que `copa-relampago-1` (participantes sin equipo vinculado) sigue renderizando sin errores con su propia insignia generada por nombre. Los datos de prueba se borraron de la base al terminar.
+
+## Para continuar
+
+1. Sin pendientes bloqueantes del catálogo de equipos.
+2. Alcance parqueado, no iniciado: formato híbrido "Grupos + Mata-Mata", aprobación de inscripción por el admin, invitación de jugador a un cupo, pestaña de estadísticas del torneo, ajustes manuales de puntuación.
