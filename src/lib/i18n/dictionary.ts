@@ -14,6 +14,7 @@ const dictionaries = {
       login: "Entrar",
       registro: "Criar conta",
       logout: "Sair",
+      menu: "Menu",
     },
     footer: {
       tagline: "Plataforma comunitária para criar e jogar torneios de eFootball.",
@@ -299,6 +300,7 @@ const dictionaries = {
       login: "Ingresar",
       registro: "Crear cuenta",
       logout: "Salir",
+      menu: "Menú",
     },
     footer: {
       tagline: "Plataforma comunitaria para crear y jugar torneos de eFootball.",

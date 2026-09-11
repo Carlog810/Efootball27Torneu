@@ -83,8 +83,24 @@ Quedó cargada en la base la liga de esta prueba (`liga-clausura-efootball`) ya 
 - No se revisó a fondo el detalle visual/UX fuera de lo que se vio en las capturas (home, detalle de torneo, bracket, standings). No se probó responsive/mobile.
 - El proyecto **no es un repositorio git** todavía (no se inicializó porque no se pidió explícitamente).
 
-## Para continuar mañana
+## Sesión 5 (2026-09-11) — Git, limpieza de datos demo y pasada de UX mobile
 
-1. Revisión de diseño/UX más detallada (mobile, estados de carga, accesibilidad básica) si el usuario quiere pulir antes de seguir agregando funciones.
-2. Definir si se quiere iniciar control de versiones (`git init` + primer commit) — no se hizo todavía porque no se pidió.
-3. Decidir si los torneos de prueba `torneo-e2e-playwright` (sesión 3) y `liga-clausura-efootball` (sesión 4, ahora finalizado con resultados de demo) se conservan como demo o se borran.
+Se retomaron los tres pendientes de la sesión 4:
+
+**1. Control de versiones:** `git init` + commit inicial con todo el código fuente (la SQLite ya estaba en `.gitignore`, no hubo que tocar nada ahí).
+
+**2. Limpieza de datos demo:** se borraron `torneo-e2e-playwright` (sesión 3) y `liga-clausura-efootball` (sesión 4, incluyendo sus 15 partidos y 6 inscripciones) con un script puntual (partidos → inscripciones → torneo, en ese orden por las FK). `liga-clausura-efootball` es un torneo sembrado por `prisma/seed.ts`; al borrarlo vuelve a su forma original (3 inscritos, sin partidos) la próxima vez que se corra `npm run db:seed`.
+
+**3. Pasada de diseño/UX (mobile, navegador real vía Playwright + Chrome del sistema, viewports 1280px y 390px, las 14 páginas principales):**
+- Sin errores de consola/hidratación en ninguna página, en ningún viewport.
+- El círculo negro con "N" que aparece flotando en las capturas es el botón de Next.js Devtools inyectado por `next dev` — no es de la app, no sale en producción.
+- **Bug real encontrado:** el Navbar ocultaba con `hidden md:flex` / `hidden md:block` tanto los links de navegación (Relámpago/Ligas/Torneos/Rankings/Ayuda) como el buscador **sin ningún reemplazo para mobile** — por debajo de `md` no había forma de navegar ni buscar salvo por los links del footer. **Fix:** `src/components/Navbar.tsx` ahora tiene un menú hamburguesa (`<details>/<summary>`, sin JS de cliente) visible solo `md:hidden` con buscador + links + login/registro (o perfil/salir), validado en Chrome real a 390px y 360px (sin overflow horizontal, navegación funcional).
+- **Pulido menor:** `BracketView`, `StandingsTable` y `RankingTable` ya tenían `overflow-x-auto` (el contenido se desplaza bien en mobile, confirmado programáticamente: `scrollWidth` 708px vs `clientWidth` 358px en el bracket), pero no había ninguna pista visual de que se podía hacer scroll horizontal — el contenido se cortaba en seco en el borde derecho. Se agregó un fade sutil (`mask-image`, solo `max-md`) en los tres componentes.
+- No se tocó nada del layout/diseño en desktop (`md:` en adelante quedó igual).
+
+**Verificación:** `npx tsc --noEmit` limpio, 11/11 tests, capturas antes/después en ambos viewports para las 14 páginas.
+
+## Para continuar
+
+1. No quedó pendiente nada bloqueante del pulido mobile — si se quiere seguir, lo próximo sería una pasada de accesibilidad más formal (contraste de color, foco de teclado, `aria-label`s en iconos/botones que hoy no lo tienen más allá del menú nuevo).
+2. Seguir agregando funcionalidad (lo que decida el usuario) sobre una base ahora versionada en git y sin datos de prueba sueltos.

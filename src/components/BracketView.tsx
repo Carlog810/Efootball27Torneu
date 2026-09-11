@@ -59,7 +59,7 @@ export function BracketView({
   );
 
   return (
-    <div className="flex gap-6 overflow-x-auto pb-4">
+    <div className="flex gap-6 overflow-x-auto pb-4 max-md:[-webkit-mask-image:linear-gradient(to_right,black_calc(100%-28px),transparent)] max-md:[mask-image:linear-gradient(to_right,black_calc(100%-28px),transparent)]">
       {rounds.map((round) => {
         const roundMatches = matches
           .filter((m) => m.round === round)
