@@ -1,6 +1,8 @@
 # Progreso del proyecto
 
-Bitácora de sesiones de trabajo con Claude Code. `README.md` explica qué es el proyecto y cómo correrlo; este archivo lleva el hilo de qué se hizo, qué se probó, qué bugs salieron y qué sigue.
+Repo: [github.com/Carlog810/Efootball27Torneu](https://github.com/Carlog810/Efootball27Torneu)
+
+Bitácora de sesiones de trabajo de desarrollo. `README.md` explica qué es el proyecto y cómo correrlo; este archivo lleva el hilo de qué se hizo, qué se probó, qué bugs salieron y qué sigue.
 
 ---
 
@@ -160,7 +162,7 @@ Auditoría con dos herramientas: `axe-core` (ya presente como dependencia transi
 
 ## Sesión 8 (2026-09-11) — Catálogo de equipos con escudo
 
-El usuario pidió empezar con el primero de los ítems parqueados: un catálogo de equipos con escudo, compartido entre todos los torneos (como en Arena17). Antes de tocar código se aclaró un punto importante: **Claude no va a salir a buscar/descargar logos reales de clubes** para empaquetarlos en el proyecto (son marca/derechos de terceros, aunque el uso sea no comercial no es una decisión que le corresponda tomar a Claude por el usuario). En cambio, el escudo de cada equipo es una URL que el propio usuario carga — mismo patrón que ya existía (sin usarse en ningún formulario) para `coverImage` de torneos/ligas. Si un equipo no tiene URL cargada, se genera automáticamente una insignia con las iniciales sobre un color determinístico (mismo estilo visual que ya usaba el avatar del perfil de jugador, generalizado). Se usó modo plan antes de tocar el schema.
+El usuario pidió empezar con el primero de los ítems parqueados: un catálogo de equipos con escudo, compartido entre todos los torneos (como en Arena17). Antes de tocar código se aclaró un punto importante: **no se van a buscar/descargar logos reales de clubes** para empaquetarlos en el proyecto (son marca/derechos de terceros; aunque el uso sea no comercial, no es una decisión que corresponda tomar automáticamente en nombre del usuario). En cambio, el escudo de cada equipo es una URL que el propio usuario carga — mismo patrón que ya existía (sin usarse en ningún formulario) para `coverImage` de torneos/ligas. Si un equipo no tiene URL cargada, se genera automáticamente una insignia con las iniciales sobre un color determinístico (mismo estilo visual que ya usaba el avatar del perfil de jugador, generalizado). Se usó modo plan antes de tocar el schema.
 
 **Modelo de datos:** `prisma/schema.prisma` (migración `20260911162024_add_team_catalog`) — modelo `Team` nuevo (`id`, `name` único, `crestUrl` opcional, `createdAt`), catálogo global sin atarlo a plataforma ni liga. `Participant.teamId` opcional (FK a `Team`) se agregó **al lado de** `teamName` (que sigue existiendo tal cual, ahora como copia del nombre del equipo al momento de inscribirse) — así ningún participante existente (incluida la semilla `copa-relampago-1`) se rompe; simplemente no tiene equipo vinculado y cae al respaldo de insignia generada.
 
