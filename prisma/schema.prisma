@@ -28,6 +28,12 @@ enum MatchStatus {
   PLAYED
 }
 
+enum ParticipantStatus {
+  CONFIRMED
+  PENDING_APPROVAL
+  PENDING_CONFIRMATION
+}
+
 model Platform {
   id          String       @id @default(cuid())
   name        String       @unique
@@ -88,6 +94,7 @@ model Tournament {
   status               TournamentStatus  @default(REGISTRATION)
   feeType              FeeType           @default(FREE)
   legs                 Int               @default(1)
+  requireApproval      Boolean           @default(false)
   maxParticipants      Int
   registrationClosesAt DateTime
   startsAt             DateTime
@@ -113,6 +120,7 @@ model Participant {
   teamName         String
   teamId           String?
   team             Team?       @relation(fields: [teamId], references: [id])
+  status           ParticipantStatus @default(CONFIRMED)
   seed             Int?
   eliminatedRound  Int?
   joinedAt         DateTime    @default(now())

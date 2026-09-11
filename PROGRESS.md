@@ -198,3 +198,29 @@ Siguiente ítem de la lista parqueada: la pestaña "Estatísticas" que Arena17 m
 1. Sin pendientes bloqueantes de estadísticas del torneo.
 2. Alcance parqueado, no iniciado: formato híbrido "Grupos + Mata-Mata", aprobación de inscripción por el admin, invitación de jugador a un cupo, ajustes manuales de puntuación.
 3. Nota para la próxima vez que se toque `TeamBadge.tsx` u otro componente visual nuevo: correr axe-core antes de darlo por terminado, no asumir que "se ve bien" alcanza — así no se repite el desliz de la sesión 8.
+
+---
+
+## Sesión 10 (2026-09-11) — Aprobación de inscripción por el admin + invitación de jugador
+
+Siguientes dos ítems de la lista parqueada, encarados juntos porque comparten el mismo modelo (`Participant.status`). Esta sesión retomó un trabajo que había quedado a medio hacer (schema, migración, validación y server actions ya escritos, pero **sin ninguna UI conectada** y con las traducciones nuevas solo en portugués) y lo completó.
+
+**Modelo de datos** (ya existente al empezar la sesión, sin cambios): `ParticipantStatus` (`CONFIRMED` / `PENDING_APPROVAL` / `PENDING_CONFIRMATION`), `Tournament.requireApproval`, `Participant.status` (migración `20260911165307_add_participant_status`).
+
+**Server actions** (ya existentes, se corrigieron 2 bugs reales al auditarlas antes de conectar la UI):
+- `formData.get("requireApproval")` devuelve `null` (no `undefined`) cuando el checkbox del formulario no está marcado, y el `.default("false")` de Zod solo aplica a `undefined` — el checkbox sin marcar rompía la validación. Fix: `formData.get("requireApproval") ?? "false"` antes de parsear.
+- `removeParticipantAction` lanzaba la clave de error equivocada (`notPendingApproval`, pensada para "no está pendiente de aprobación") cuando el organizador intentaba remover a alguien ya `CONFIRMED` — existía una clave correcta (`cannotRemoveConfirmed`) en el diccionario que no se estaba usando. Fix: usar la clave correcta.
+
+**Traducciones:** se agregaron las claves de `tournamentErrors` que solo existían en portugués (`onlyOrganizer`, `userNotFound`, `notYourInvite`, `notPendingApproval`, `cannotRemoveConfirmed`) también en español, y se agregaron ~17 claves nuevas de UI en `tournamentForm`/`tournamentDetail` (ambos idiomas): checkbox de aprobación, badges de estado pendiente, botones de aprobar/remover/aceptar/rechazar, formulario de invitación.
+
+**UI conectada (todo lo que faltaba):**
+- `TournamentForm`: checkbox "Inscrições precisam de aprovação do organizador".
+- `TournamentActions.tsx`: 4 componentes cliente nuevos — `ApproveButton`, `RemoveParticipantButton` (reusan el hook `useTournamentAction` ya existente, que resultó genérico en el tipo de id que recibe), `RespondInviteButtons` (aceptar/rechazar invitación, con su propio manejo de pendiente por-botón) e `InviteForm` (input de player tag + select de equipo).
+- `torneos/[slug]/page.tsx`: la lista de participantes ahora distingue status con un badge (`Badge tone="warning"`) y muestra las acciones que correspondan según quién mira la página (organizador ve aprobar/remover en pendientes de aprobación y remover en invitaciones pendientes; el propio invitado ve aceptar/rechazar); el botón de inscripción cambia su texto a "Solicitar inscripción" cuando el torneo requiere aprobación; `canLeave` excluye invitaciones pendientes (se responden con aceptar/rechazar, no con "salir"); `canDraw` ahora cuenta solo participantes `CONFIRMED` (antes contaba cualquier status); formulario de invitación visible para el organizador mientras las inscripciones están abiertas.
+
+**Verificación:** `tsc`, `lint`, 30/30 tests unitarios y `next build` de producción, todos limpios. Flujo completo probado en Chrome real (Playwright + Chrome del sistema, mismo patrón de sesiones anteriores): torneo con aprobación requerida → Ana solicita inscripción (queda `PENDING_APPROVAL`, badge visible) → Carlos (organizador) la aprueba (badge desaparece) → Carlos invita a Luis por su player tag (`PENDING_CONFIRMATION`, badge de invitación) → Luis ve el invite y lo acepta (badge desaparece, aparece botón de salir). Sin errores de consola ni de página en ningún paso. Datos de prueba borrados de la base al terminar.
+
+## Para continuar
+
+1. Sin pendientes bloqueantes de aprobación de inscripción ni de invitación de jugador.
+2. Alcance parqueado, no iniciado: formato híbrido "Grupos + Mata-Mata", ajustes manuales de puntuación.

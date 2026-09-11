@@ -40,6 +40,7 @@ export async function createTournamentAction(
     ligaId: formData.get("ligaId") || undefined,
     feeType: formData.get("feeType"),
     legs: formData.get("legs"),
+    requireApproval: formData.get("requireApproval") ?? "false",
     maxParticipants: Number(formData.get("maxParticipants")),
     registrationClosesAt: formData.get("registrationClosesAt"),
     startsAt: formData.get("startsAt"),
@@ -67,6 +68,7 @@ export async function createTournamentAction(
       format: data.format,
       feeType: data.feeType,
       legs: data.legs,
+      requireApproval: data.requireApproval,
       maxParticipants: data.maxParticipants,
       registrationClosesAt: data.registrationClosesAt,
       startsAt: data.startsAt,
@@ -113,8 +115,135 @@ export async function joinTournamentAction(tournamentId: string, teamId: string)
       userId: user.id,
       teamId: team.id,
       teamName: team.name,
+      status: tournament.requireApproval ? "PENDING_APPROVAL" : "CONFIRMED",
     },
   });
+
+  revalidatePath(`/torneos`);
+}
+
+export async function inviteParticipantAction(
+  tournamentId: string,
+  playerTag: string,
+  teamId: string
+) {
+  const user = await requireUser();
+  const t = getDictionary(await getLocale());
+  const e = t.tournamentErrors;
+
+  const tournament = await db.tournament.findUnique({
+    where: { id: tournamentId },
+    include: { _count: { select: { participants: true } } },
+  });
+  if (!tournament) throw new Error(e.notFound);
+  if (tournament.organizerId !== user.id) {
+    throw new Error(e.onlyOrganizer);
+  }
+  if (tournament.status !== "REGISTRATION") {
+    throw new Error(e.registrationClosed);
+  }
+  if (tournament._count.participants >= tournament.maxParticipants) {
+    throw new Error(e.full);
+  }
+
+  const invitedUser = await db.user.findUnique({ where: { playerTag } });
+  if (!invitedUser) throw new Error(e.userNotFound);
+
+  const team = await db.team.findUnique({ where: { id: teamId } });
+  if (!team) throw new Error(e.teamNotFound);
+
+  const existing = await db.participant.findUnique({
+    where: { tournamentId_userId: { tournamentId, userId: invitedUser.id } },
+  });
+  if (existing) throw new Error(e.alreadyJoined);
+
+  await db.participant.create({
+    data: {
+      tournamentId,
+      userId: invitedUser.id,
+      teamId: team.id,
+      teamName: team.name,
+      status: "PENDING_CONFIRMATION",
+    },
+  });
+
+  revalidatePath(`/torneos`);
+}
+
+export async function respondToInviteAction(
+  participantId: string,
+  accept: boolean
+) {
+  const user = await requireUser();
+  const t = getDictionary(await getLocale());
+  const e = t.tournamentErrors;
+
+  const participant = await db.participant.findUnique({
+    where: { id: participantId },
+  });
+  if (!participant) throw new Error(e.notFound);
+  if (participant.userId !== user.id) {
+    throw new Error(e.notYourInvite);
+  }
+  if (participant.status !== "PENDING_CONFIRMATION") {
+    throw new Error(e.notYourInvite);
+  }
+
+  if (accept) {
+    await db.participant.update({
+      where: { id: participantId },
+      data: { status: "CONFIRMED" },
+    });
+  } else {
+    await db.participant.delete({ where: { id: participantId } });
+  }
+
+  revalidatePath(`/torneos`);
+}
+
+export async function approveParticipantAction(participantId: string) {
+  const user = await requireUser();
+  const t = getDictionary(await getLocale());
+  const e = t.tournamentErrors;
+
+  const participant = await db.participant.findUnique({
+    where: { id: participantId },
+    include: { tournament: true },
+  });
+  if (!participant) throw new Error(e.notFound);
+  if (participant.tournament.organizerId !== user.id) {
+    throw new Error(e.onlyOrganizer);
+  }
+  if (participant.status !== "PENDING_APPROVAL") {
+    throw new Error(e.notPendingApproval);
+  }
+
+  await db.participant.update({
+    where: { id: participantId },
+    data: { status: "CONFIRMED" },
+  });
+
+  revalidatePath(`/torneos`);
+}
+
+export async function removeParticipantAction(participantId: string) {
+  const user = await requireUser();
+  const t = getDictionary(await getLocale());
+  const e = t.tournamentErrors;
+
+  const participant = await db.participant.findUnique({
+    where: { id: participantId },
+    include: { tournament: true },
+  });
+  if (!participant) throw new Error(e.notFound);
+  if (participant.tournament.organizerId !== user.id) {
+    throw new Error(e.onlyOrganizer);
+  }
+  if (participant.status === "CONFIRMED") {
+    throw new Error(e.cannotRemoveConfirmed);
+  }
+
+  await db.participant.delete({ where: { id: participantId } });
 
   revalidatePath(`/torneos`);
 }
@@ -155,11 +284,14 @@ export async function drawTournamentAction(tournamentId: string) {
   if (tournament.status !== "REGISTRATION") {
     throw new Error(e.alreadyDrawn);
   }
-  if (tournament.participants.length < 2) {
+  const confirmed = tournament.participants.filter(
+    (p) => p.status === "CONFIRMED"
+  );
+  if (confirmed.length < 2) {
     throw new Error(e.needTwoParticipants);
   }
 
-  const shuffledIds = shuffle(tournament.participants.map((p) => p.id));
+  const shuffledIds = shuffle(confirmed.map((p) => p.id));
   const legs = tournament.legs === 2 ? 2 : 1;
 
   const matches =
@@ -167,7 +299,14 @@ export async function drawTournamentAction(tournamentId: string) {
       ? generateSingleEliminationBracket(shuffledIds, legs)
       : generateRoundRobinSchedule(shuffledIds, legs);
 
+  const stalePendingIds = tournament.participants
+    .filter((p) => p.status !== "CONFIRMED")
+    .map((p) => p.id);
+
   await db.$transaction([
+    ...(stalePendingIds.length > 0
+      ? [db.participant.deleteMany({ where: { id: { in: stalePendingIds } } })]
+      : []),
     ...matches.map((m) =>
       db.match.create({
         data: {

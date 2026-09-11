@@ -107,6 +107,16 @@ export function TournamentForm({
         </Select>
       </div>
 
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          name="requireApproval"
+          type="checkbox"
+          value="true"
+          className="h-4 w-4 rounded border-border accent-primary"
+        />
+        {f.requireApproval}
+      </label>
+
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label htmlFor="registrationClosesAt">

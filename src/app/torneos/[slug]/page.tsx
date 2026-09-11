@@ -9,7 +9,15 @@ import {
   FeeBadge,
   Badge,
 } from "@/components/ui/Badge";
-import { JoinButton, LeaveButton, DrawButton } from "@/components/TournamentActions";
+import {
+  JoinButton,
+  LeaveButton,
+  DrawButton,
+  ApproveButton,
+  RemoveParticipantButton,
+  RespondInviteButtons,
+  InviteForm,
+} from "@/components/TournamentActions";
 import { BracketView } from "@/components/BracketView";
 import { StandingsTable } from "@/components/StandingsTable";
 import { TournamentStats } from "@/components/TournamentStats";
@@ -65,11 +73,15 @@ export default async function TournamentDetailPage({
     !myParticipant &&
     tournament.participants.length < tournament.maxParticipants;
   const canLeave =
-    !!user && tournament.status === "REGISTRATION" && !!myParticipant;
+    !!user &&
+    tournament.status === "REGISTRATION" &&
+    !!myParticipant &&
+    myParticipant.status !== "PENDING_CONFIRMATION";
   const canDraw =
     isOrganizer &&
     tournament.status === "REGISTRATION" &&
-    tournament.participants.length >= 2;
+    tournament.participants.filter((p) => p.status === "CONFIRMED").length >=
+      2;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
@@ -102,8 +114,10 @@ export default async function TournamentDetailPage({
           {canJoin && (
             <JoinButton
               tournamentId={tournament.id}
-              label={d.join}
-              pendingLabel={d.joining}
+              label={tournament.requireApproval ? d.requestJoin : d.join}
+              pendingLabel={
+                tournament.requireApproval ? d.requestJoining : d.joining
+              }
               teams={teams}
               selectLabel={d.selectTeam}
               noTeamsLabel={d.noTeams}
@@ -177,25 +191,84 @@ export default async function TournamentDetailPage({
             {tournament.participants.length === 0 ? (
               <p className="p-4 text-sm text-muted">{d.noParticipants}</p>
             ) : (
-              tournament.participants.map((p) => (
-                <div
-                  key={p.id}
-                  className="flex items-center justify-between p-3 text-sm"
-                >
-                  <span className="flex items-center gap-2">
-                    <TeamBadge name={p.teamName} crestUrl={p.team?.crestUrl} />
-                    {p.teamName}
-                  </span>
-                  <Link
-                    href={`/jugadores/${p.user.playerTag}`}
-                    className="text-muted hover:text-foreground"
+              tournament.participants.map((p) => {
+                const isPendingApproval = p.status === "PENDING_APPROVAL";
+                const isPendingInvite = p.status === "PENDING_CONFIRMATION";
+                return (
+                  <div
+                    key={p.id}
+                    className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm"
                   >
-                    {p.user.playerTag}
-                  </Link>
-                </div>
-              ))
+                    <span className="flex items-center gap-2">
+                      <TeamBadge
+                        name={p.teamName}
+                        crestUrl={p.team?.crestUrl}
+                      />
+                      {p.teamName}
+                      {isPendingApproval && (
+                        <Badge tone="warning">{d.pendingApprovalBadge}</Badge>
+                      )}
+                      {isPendingInvite && (
+                        <Badge tone="warning">{d.pendingInviteBadge}</Badge>
+                      )}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/jugadores/${p.user.playerTag}`}
+                        className="text-muted hover:text-foreground"
+                      >
+                        {p.user.playerTag}
+                      </Link>
+                      {isOrganizer && isPendingApproval && (
+                        <>
+                          <ApproveButton
+                            participantId={p.id}
+                            label={d.approve}
+                            pendingLabel={d.approving}
+                          />
+                          <RemoveParticipantButton
+                            participantId={p.id}
+                            label={d.remove}
+                            pendingLabel={d.removing}
+                          />
+                        </>
+                      )}
+                      {isOrganizer && isPendingInvite && (
+                        <RemoveParticipantButton
+                          participantId={p.id}
+                          label={d.remove}
+                          pendingLabel={d.removing}
+                        />
+                      )}
+                      {user?.id === p.userId && isPendingInvite && (
+                        <RespondInviteButtons
+                          participantId={p.id}
+                          acceptLabel={d.acceptInvite}
+                          acceptingLabel={d.accepting}
+                          declineLabel={d.declineInvite}
+                          decliningLabel={d.declining}
+                        />
+                      )}
+                    </div>
+                  </div>
+                );
+              })
             )}
           </Card>
+
+          {isOrganizer && tournament.status === "REGISTRATION" && (
+            <div className="mt-4">
+              <h3 className="mb-2 text-sm font-semibold">{d.inviteTitle}</h3>
+              <InviteForm
+                tournamentId={tournament.id}
+                teams={teams}
+                playerTagLabel={d.invitePlayerTag}
+                teamLabel={d.inviteTeam}
+                submitLabel={d.inviteSubmit}
+                submittingLabel={d.inviteSubmitting}
+              />
+            </div>
+          )}
         </div>
       </div>
 
