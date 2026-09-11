@@ -1,5 +1,7 @@
 # EF Torneos
 
+Repo: [github.com/Carlog810/Efootball27Torneu](https://github.com/Carlog810/Efootball27Torneu)
+
 Plataforma comunitaria de gestión de torneos y ligas de **eFootball**, inspirada en [Arena17](https://www.arena17.com) pero acotada a eFootball, con diseño propio y un stack 100% gratuito (no requiere ninguna cuenta ni servicio de pago para desarrollar o correr localmente).
 
 Funciona en **portugués** (idioma por defecto) y **español**, sin prefijo de idioma en la URL — el idioma se guarda en una cookie, igual que en Arena17.
