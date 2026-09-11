@@ -1,0 +1,132 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum TournamentFormat {
+  SINGLE_ELIM
+  LEAGUE
+}
+
+enum TournamentStatus {
+  REGISTRATION
+  IN_PROGRESS
+  FINISHED
+}
+
+enum FeeType {
+  FREE
+  PAID
+}
+
+enum MatchStatus {
+  PENDING
+  PLAYED
+}
+
+model Platform {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  tournaments Tournament[]
+  ligas       Liga[]
+  users       User[]
+}
+
+model User {
+  id             String        @id @default(cuid())
+  email          String        @unique
+  passwordHash   String
+  name           String
+  playerTag      String        @unique
+  platformPrefId String?
+  platformPref   Platform?     @relation(fields: [platformPrefId], references: [id])
+  createdAt      DateTime      @default(now())
+  organizedTournaments Tournament[] @relation("Organizer")
+  participants   Participant[]
+  resetTokens    PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+}
+
+model Liga {
+  id          String       @id @default(cuid())
+  name        String
+  slug        String       @unique
+  description String?
+  coverImage  String?
+  platformId  String?
+  platform    Platform?    @relation(fields: [platformId], references: [id])
+  tournaments Tournament[]
+  createdAt   DateTime     @default(now())
+}
+
+model Tournament {
+  id                   String            @id @default(cuid())
+  name                 String
+  slug                 String            @unique
+  format               TournamentFormat
+  status               TournamentStatus  @default(REGISTRATION)
+  feeType              FeeType           @default(FREE)
+  maxParticipants      Int
+  registrationClosesAt DateTime
+  startsAt             DateTime
+  description          String?
+  coverImage           String?
+  platformId           String
+  platform             Platform          @relation(fields: [platformId], references: [id])
+  organizerId          String
+  organizer            User              @relation("Organizer", fields: [organizerId], references: [id])
+  ligaId               String?
+  liga                 Liga?             @relation(fields: [ligaId], references: [id])
+  participants         Participant[]
+  matches              Match[]
+  createdAt            DateTime          @default(now())
+}
+
+model Participant {
+  id               String      @id @default(cuid())
+  tournamentId     String
+  tournament       Tournament  @relation(fields: [tournamentId], references: [id])
+  userId           String
+  user             User        @relation(fields: [userId], references: [id])
+  teamName         String
+  seed             Int?
+  eliminatedRound  Int?
+  joinedAt         DateTime    @default(now())
+  matchesAsA       Match[]     @relation("ParticipantA")
+  matchesAsB       Match[]     @relation("ParticipantB")
+  matchesWon       Match[]     @relation("Winner")
+
+  @@unique([tournamentId, userId])
+}
+
+model Match {
+  id               String        @id @default(cuid())
+  tournamentId     String
+  tournament       Tournament    @relation(fields: [tournamentId], references: [id])
+  round            Int
+  position         Int
+  participantAId   String?
+  participantA     Participant?  @relation("ParticipantA", fields: [participantAId], references: [id])
+  participantBId   String?
+  participantB     Participant?  @relation("ParticipantB", fields: [participantBId], references: [id])
+  scoreA           Int?
+  scoreB           Int?
+  winnerId         String?
+  winner           Participant?  @relation("Winner", fields: [winnerId], references: [id])
+  status           MatchStatus   @default(PENDING)
+
+  @@unique([tournamentId, round, position])
+}
