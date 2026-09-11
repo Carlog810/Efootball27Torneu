@@ -100,8 +100,8 @@ model Tournament {
   startsAt             DateTime
   description          String?
   coverImage           String?
-  platformId           String
-  platform             Platform          @relation(fields: [platformId], references: [id])
+  platformId           String?
+  platform             Platform?         @relation(fields: [platformId], references: [id])
   organizerId          String
   organizer            User              @relation("Organizer", fields: [organizerId], references: [id])
   ligaId               String?

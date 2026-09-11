@@ -88,7 +88,8 @@ export default async function PlayerProfilePage({
                 <div>
                   <p className="font-medium">{p.tournament.name}</p>
                   <p className="text-xs text-muted">
-                    {p.tournament.platform.name} · {p.teamName}
+                    {p.tournament.platform?.name ?? t.badges.crossplay} ·{" "}
+                    {p.teamName}
                   </p>
                 </div>
               </div>

@@ -38,7 +38,7 @@ export function getTournamentSchema(t: Dictionary) {
   return z.object({
     name: z.string().min(3, t.tournamentValidation.nameMin),
     format: z.enum(["SINGLE_ELIM", "LEAGUE"]),
-    platformId: z.string().min(1, t.tournamentValidation.platformRequired),
+    platformId: z.string().optional(),
     ligaId: z.string().optional(),
     feeType: z.enum(["FREE", "PAID"]),
     legs: z.coerce.number().int().min(1).max(2).default(1),

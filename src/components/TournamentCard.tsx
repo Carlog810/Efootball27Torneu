@@ -11,7 +11,7 @@ export interface TournamentCardData {
   feeType: "FREE" | "PAID";
   maxParticipants: number;
   startsAt: Date;
-  platform: { name: string };
+  platform: { name: string } | null;
   _count: { participants: number };
 }
 
@@ -33,7 +33,9 @@ export function TournamentCard({
         </div>
         <div className="flex flex-wrap gap-2">
           <TournamentStatusBadge status={tournament.status} t={t} />
-          <Badge tone="neutral">{tournament.platform.name}</Badge>
+          <Badge tone="neutral">
+            {tournament.platform?.name ?? t.badges.crossplay}
+          </Badge>
           <Badge tone="neutral">{t.badges.format[tournament.format]}</Badge>
         </div>
         <div className="mt-auto flex items-center justify-between text-xs text-muted">

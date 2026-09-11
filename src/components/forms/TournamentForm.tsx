@@ -51,10 +51,8 @@ export function TournamentForm({
         </div>
         <div>
           <Label htmlFor="platformId">{f.platform}</Label>
-          <Select id="platformId" name="platformId" required defaultValue="">
-            <option value="" disabled>
-              {f.selectPlaceholder}
-            </option>
+          <Select id="platformId" name="platformId" defaultValue="">
+            <option value="">{f.crossplay}</option>
             {platforms.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}

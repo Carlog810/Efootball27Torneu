@@ -36,7 +36,7 @@ export async function createTournamentAction(
   const parsed = getTournamentSchema(t).safeParse({
     name: formData.get("name"),
     format: formData.get("format"),
-    platformId: formData.get("platformId"),
+    platformId: formData.get("platformId") || undefined,
     ligaId: formData.get("ligaId") || undefined,
     feeType: formData.get("feeType"),
     legs: formData.get("legs"),
@@ -74,7 +74,7 @@ export async function createTournamentAction(
       startsAt: data.startsAt,
       description: data.description || null,
       coverImage: data.coverImage || null,
-      platformId: data.platformId,
+      platformId: data.platformId || null,
       ligaId: data.ligaId || null,
       organizerId: user.id,
     },

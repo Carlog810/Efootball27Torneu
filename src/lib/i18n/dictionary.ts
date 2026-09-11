@@ -39,6 +39,7 @@ const dictionaries = {
       },
       fee: { FREE: "Grátis", PAID: "Pago" },
       format: { SINGLE_ELIM: "Eliminação simples", LEAGUE: "Liga" },
+      crossplay: "Crossplay",
     },
     home: {
       heroTitlePrefix: "Crie ou participe de torneios de",
@@ -88,7 +89,7 @@ const dictionaries = {
       formatSingleElim: "Eliminação simples",
       formatLeague: "Liga (todos contra todos)",
       platform: "Plataforma",
-      selectPlaceholder: "Selecione",
+      crossplay: "Crossplay / Todas as plataformas",
       fee: "Taxa",
       legs: "Formato de jogo",
       legsSingle: "Partida única",
@@ -336,7 +337,6 @@ const dictionaries = {
     },
     tournamentValidation: {
       nameMin: "O nome deve ter pelo menos 3 caracteres",
-      platformRequired: "Selecione uma plataforma",
       minParticipants: "Mínimo de 2 participantes",
       maxParticipants: "Máximo de 128 participantes",
     },
@@ -400,6 +400,7 @@ const dictionaries = {
       },
       fee: { FREE: "Gratis", PAID: "Pago" },
       format: { SINGLE_ELIM: "Eliminación simple", LEAGUE: "Liga" },
+      crossplay: "Crossplay",
     },
     home: {
       heroTitlePrefix: "Crea o participa en torneos de",
@@ -449,7 +450,7 @@ const dictionaries = {
       formatSingleElim: "Eliminación simple",
       formatLeague: "Liga (todos contra todos)",
       platform: "Plataforma",
-      selectPlaceholder: "Selecciona",
+      crossplay: "Crossplay / Todas las plataformas",
       fee: "Tarifa",
       legs: "Formato de partidos",
       legsSingle: "Partido único",
@@ -697,7 +698,6 @@ const dictionaries = {
     },
     tournamentValidation: {
       nameMin: "El nombre debe tener al menos 3 caracteres",
-      platformRequired: "Selecciona una plataforma",
       minParticipants: "Mínimo 2 participantes",
       maxParticipants: "Máximo 128 participantes",
     },

@@ -105,7 +105,9 @@ export default async function TournamentDetailPage({
           <div className="mt-3 flex flex-wrap gap-2">
             <TournamentStatusBadge status={tournament.status} t={t} />
             <FeeBadge feeType={tournament.feeType} t={t} />
-            <Badge tone="neutral">{tournament.platform.name}</Badge>
+            <Badge tone="neutral">
+              {tournament.platform?.name ?? t.badges.crossplay}
+            </Badge>
             <Badge tone="neutral">{t.badges.format[tournament.format]}</Badge>
           </div>
         </div>
