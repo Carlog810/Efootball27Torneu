@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { registerAction, type ActionState } from "@/lib/actions/auth";
 import { Input, Label, FieldErrors, FormError } from "@/components/ui/Field";
 import { Select } from "@/components/ui/Field";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Button } from "@/components/ui/Button";
 import type { Dictionary } from "@/lib/i18n/dictionary";
 
@@ -65,7 +66,13 @@ export function RegisterForm({
       </div>
       <div>
         <Label htmlFor="password">{t.auth.password}</Label>
-        <Input id="password" name="password" type="password" required />
+        <PasswordInput
+          id="password"
+          name="password"
+          required
+          showLabel={t.auth.showPassword}
+          hideLabel={t.auth.hidePassword}
+        />
         <FieldErrors errors={state.fieldErrors?.password} />
       </div>
       <Button type="submit" disabled={pending} className="w-full">

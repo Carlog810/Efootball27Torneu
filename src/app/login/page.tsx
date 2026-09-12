@@ -6,6 +6,7 @@ import { getLocale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n/dictionary";
 import { Card } from "@/components/ui/Card";
 import { Input, Label, FormError } from "@/components/ui/Field";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Button } from "@/components/ui/Button";
 
 export default async function LoginPage({
@@ -51,7 +52,13 @@ export default async function LoginPage({
           </div>
           <div>
             <Label htmlFor="password">{t.auth.password}</Label>
-            <Input id="password" name="password" type="password" required />
+            <PasswordInput
+              id="password"
+              name="password"
+              required
+              showLabel={t.auth.showPassword}
+              hideLabel={t.auth.hidePassword}
+            />
           </div>
           <Button type="submit" className="w-full">
             {t.auth.login}

@@ -3,7 +3,8 @@
 import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { resetPasswordAction, type ActionState } from "@/lib/actions/auth";
-import { Input, Label, FieldErrors, FormError } from "@/components/ui/Field";
+import { Label, FieldErrors, FormError } from "@/components/ui/Field";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Button } from "@/components/ui/Button";
 import type { Dictionary } from "@/lib/i18n/dictionary";
 
@@ -34,16 +35,23 @@ export function ResetPasswordForm({
       <FormError message={state.error} />
       <div>
         <Label htmlFor="password">{t.auth.newPassword}</Label>
-        <Input id="password" name="password" type="password" required />
+        <PasswordInput
+          id="password"
+          name="password"
+          required
+          showLabel={t.auth.showPassword}
+          hideLabel={t.auth.hidePassword}
+        />
         <FieldErrors errors={state.fieldErrors?.password} />
       </div>
       <div>
         <Label htmlFor="confirmPassword">{t.auth.confirmPassword}</Label>
-        <Input
+        <PasswordInput
           id="confirmPassword"
           name="confirmPassword"
-          type="password"
           required
+          showLabel={t.auth.showPassword}
+          hideLabel={t.auth.hidePassword}
         />
         <FieldErrors errors={state.fieldErrors?.confirmPassword} />
       </div>

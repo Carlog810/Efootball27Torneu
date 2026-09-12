@@ -1,6 +1,7 @@
 "use server";
 
 import { randomBytes } from "node:crypto";
+import { headers } from "next/headers";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { getLocale } from "@/lib/i18n/locale";
@@ -92,9 +93,10 @@ export async function requestPasswordResetAction(
       data: { token, userId: user.id, expiresAt },
     });
 
-    const resetUrl = `${
-      process.env.NEXTAUTH_URL ?? "http://localhost:3000"
-    }/reset/${token}`;
+    const hdrs = await headers();
+    const host = hdrs.get("host") ?? "localhost:3000";
+    const protocol = hdrs.get("x-forwarded-proto") ?? "http";
+    const resetUrl = `${protocol}://${host}/reset/${token}`;
 
     // No hay proveedor de email configurado (proyecto sin presupuesto):
     // el link de reseteo se imprime en la consola del servidor.
