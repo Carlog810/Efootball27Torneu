@@ -226,3 +226,28 @@ Siguientes dos ítems de la lista parqueada, encarados juntos porque comparten e
 
 1. Sin pendientes bloqueantes de aprobación de inscripción ni de invitación de jugador.
 2. Alcance parqueado, no iniciado: formato híbrido "Grupos + Mata-Mata", ajustes manuales de puntuación.
+
+---
+
+## Sesión 11 (2026-09-11) — Deploy a producción (Vercel + Turso) y torneos crossplay
+
+Se desplegó el sitio por primera vez: repo conectado a Vercel, base de datos productiva en Turso (libSQL, compatible con SQLite) usando el adapter de driver de Prisma — en desarrollo local se sigue usando el archivo SQLite tal cual, sin tocar nada. `src/lib/db.ts` elige el adapter solo si `TURSO_DATABASE_URL` está seteada. Se migró el schema y se cargaron las 4 plataformas base directamente contra Turso (sin correr el seed completo, que crea usuarios demo con contraseña pública conocida — no corresponde en producción). URL: https://efootball27-torneu.vercel.app.
+
+Se agregó soporte de **torneos crossplay**: `Tournament.platformId` pasó a opcional (mismo patrón que ya tenía Liga) — dejar la plataforma sin elegir en el formulario muestra un badge "Crossplay" en vez de forzar una consola específica, reflejando que eFootball permite jugar entre PS5/Xbox/PC.
+
+Se probó el flujo completo en producción con Playwright (registro, login, sesión) y se encontró y corrigió un bug real de un login de prueba (no relacionado a esta sesión): ninguno, todo funcionó a la primera excepto un error del propio script de prueba (playerTag de más de 20 caracteres).
+
+**Inspección de UX mobile** (pedida explícitamente por el usuario, viewport 390px, Chrome real): 3 problemas confirmados y corregidos:
+- El menú hamburguesa (`<details>` en el Navbar, que vive en el layout raíz) no se desmonta en la navegación cliente de Next.js, así que su estado `open` persistía de una página a la siguiente — quedaba desplegado "para siempre" después del primer tap. Fix: `MobileMenu.tsx`, un componente cliente chico que cierra el `<details>` con `useEffect` al cambiar el pathname (`usePathname`).
+- **Bug real en la recuperación de contraseña**: el link se construía con `process.env.NEXTAUTH_URL`, variable que este proyecto nunca definió en ningún lado (Auth.js v5 no la usa) — en producción caía siempre al fallback `http://localhost:3000`, generando links de reset completamente muertos. Fix: se construye ahora con los headers reales de la request (`host` + `x-forwarded-proto`), sin depender de configuración.
+- No había forma de mostrar la contraseña tipeada en ningún formulario (login, registro, reset). Se agregó `PasswordInput.tsx` (toggle 👁️/🙈) y se conectó en los 3 formularios.
+
+**Pendiente de decisión, no resuelto en esta sesión:** el link de recuperación de contraseña solo se imprime en la consola del servidor (sin proveedor de email, por la restricción de presupuesto cero del proyecto). En local eso es cómodo (terminal a mano); en producción en Vercel un usuario real que pide recuperar su contraseña no tiene forma de ver ese link — solo queda en los logs de Vercel, visibles únicamente para el dueño del proyecto. La recuperación de contraseña self-service **no es funcional hoy en producción**. Alternativas para resolverlo (no implementadas, requieren decisión del usuario): (a) un proveedor de email gratuito tipo Resend (100 emails/día sin tarjeta) para mandar el link por correo de verdad, o (b) aceptar el estado actual y que el dueño del sitio revise los logs de Vercel y le pase el link manualmente al usuario que lo pida.
+
+**Verificación:** `tsc`/`lint`/30 tests/`build` limpios en cada cambio, todo probado en Chrome real (Playwright) a 390px antes de dar por corregido.
+
+## Para continuar
+
+1. Producción funcionando en Vercel + Turso, con torneos crossplay y los 3 fixes de mobile UX ya desplegados.
+2. **Bloqueante real pendiente de decisión del usuario:** recuperación de contraseña no utilizable en producción sin un proveedor de email (ver detalle arriba).
+3. Alcance parqueado, no iniciado: formato híbrido "Grupos + Mata-Mata", ajustes manuales de puntuación.
