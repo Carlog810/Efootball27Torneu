@@ -251,3 +251,27 @@ Se probó el flujo completo en producción con Playwright (registro, login, sesi
 1. Producción funcionando en Vercel + Turso, con torneos crossplay y los 3 fixes de mobile UX ya desplegados.
 2. **Bloqueante real pendiente de decisión del usuario:** recuperación de contraseña no utilizable en producción sin un proveedor de email (ver detalle arriba).
 3. Alcance parqueado, no iniciado: formato híbrido "Grupos + Mata-Mata", ajustes manuales de puntuación.
+
+---
+
+## Sesión 12 (2026-09-11/12) — Resend, bug de build en Vercel, y el problema real del email
+
+**Se integró Resend** para el envío del link de recuperación (`src/lib/email.ts`, `sendPasswordResetEmail`): si `RESEND_API_KEY` está seteada se manda un email de verdad; si no (desarrollo local), sigue cayendo al `console.log` de siempre. Probado en local y en producción con la cuenta Resend del usuario — el email llegó.
+
+**Bug real encontrado y arreglado, no relacionado a Resend:** el deploy anterior (el de torneos crossplay, sesión 11) en realidad **nunca se aplicó en producción** — el sitio seguía sirviendo la versión vieja porque Vercel mantiene la última build exitosa. La build fallaba en TypeScript (`tournaments.ts:77`, `Type 'string | null' is not assignable to type 'string | undefined'`) porque el cliente de Prisma generado en el build de Vercel no reflejaba el `platformId` ya opcional del schema — típicamente por caché de `node_modules` que se salta el postinstall de `@prisma/client`. Fix: se agregó `"postinstall": "prisma generate"` explícito a `package.json`, el fix recomendado por Prisma para este escenario en Vercel. Verificado con un torneo crossplay real creado en producción después del fix.
+
+**El problema real de fondo, todavía sin resolver:** hay un usuario real ya registrado en la plataforma que pidió recuperar su contraseña, y **Resend con el dominio de pruebas (`onboarding@resend.dev`) solo puede enviar a la propia casilla del dueño de la cuenta Resend** — no le llega a ningún otro usuario. Se evaluaron alternativas con el usuario:
+- **Verificar un dominio propio en Resend**: la solución "correcta", pero el usuario no tiene un dominio.
+- **Zoho Mail**: descartado — su plan gratis también exige dominio propio (ya no dan casillas `@zoho.com` gratis para cuentas nuevas), no resuelve nada que Resend no resuelva ya.
+- **DuckDNS como dominio gratis**: descartado — es dynamic DNS para apuntar a una IP casera, no deja agregar los registros CNAME que Resend pide para verificar DKIM.
+- **Gmail SMTP dedicado (recomendado, no implementado aún)**: crear una cuenta Gmail nueva exclusiva para la plataforma (ej. `eftorneos.noreply@gmail.com`), activarle verificación en 2 pasos, generar una "contraseña de aplicación", y mandar por ahí vía `nodemailer` — gratis, sin dominio, manda a cualquier destinatario real. Contra: el remitente se ve como una cuenta Gmail, no un dominio propio.
+- Alternativa mencionada para más adelante: comprar un dominio barato (`.xyz`/`.site`, ~1-2 USD el primer año) y verificarlo en Resend para tener remitente con marca propia.
+
+**Sin resolver todavía:** el usuario no creó la cuenta Gmail dedicada en esta sesión. Tampoco se generó el link manual de recuperación para desbloquear al usuario real que lo pidió (se ofreció como parche inmediato, pero no se llegó a pedir el email/player tag de esa persona).
+
+## Para continuar
+
+1. **Bloqueante real, con plan ya acordado:** implementar envío por Gmail SMTP (`nodemailer`) en cuanto el usuario cree la cuenta Gmail dedicada y genere la contraseña de aplicación — reemplaza o complementa `src/lib/email.ts` (hoy solo tiene el path de Resend). Sin esto, ningún usuario real (fuera del dueño de la cuenta Resend) puede recuperar su contraseña en producción.
+2. Si hace falta desbloquear a un usuario puntual antes de tener el email andando: generar el link de recuperación directamente contra Turso (crear una fila en `PasswordResetToken` o disparar `requestPasswordResetAction` y leer el link resultante) y pasárselo manualmente — no depende del proveedor de email.
+3. Producción (Vercel + Turso) funcionando con torneos crossplay y los 3 fixes de mobile UX de la sesión 11, más el fix del postinstall de Prisma.
+4. Alcance parqueado, no iniciado: formato híbrido "Grupos + Mata-Mata", ajustes manuales de puntuación.
