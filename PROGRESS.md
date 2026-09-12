@@ -275,3 +275,21 @@ Se probó el flujo completo en producción con Playwright (registro, login, sesi
 2. Si hace falta desbloquear a un usuario puntual antes de tener el email andando: generar el link de recuperación directamente contra Turso (crear una fila en `PasswordResetToken` o disparar `requestPasswordResetAction` y leer el link resultante) y pasárselo manualmente — no depende del proveedor de email.
 3. Producción (Vercel + Turso) funcionando con torneos crossplay y los 3 fixes de mobile UX de la sesión 11, más el fix del postinstall de Prisma.
 4. Alcance parqueado, no iniciado: formato híbrido "Grupos + Mata-Mata", ajustes manuales de puntuación.
+
+---
+
+## Sesión 13 (2026-09-12) — Gmail SMTP: recuperación de contraseña ya funcional para cualquier usuario real
+
+Se ejecutó el plan acordado en la sesión 12. El usuario creó la cuenta dedicada `eftorneos26@gmail.com`, activó verificación en 2 pasos y generó una contraseña de aplicación.
+
+**`src/lib/email.ts`** ahora prueba tres vías en orden: **Gmail SMTP** (`nodemailer`, si `GMAIL_USER`/`GMAIL_APP_PASSWORD` están seteadas) → **Resend** (si `RESEND_API_KEY` está seteada) → `console.log` (desarrollo local sin nada configurado). Gmail va primero porque, a diferencia del dominio de pruebas de Resend, entrega a cualquier destinatario real sin necesitar un dominio propio verificado. Se agregó `nodemailer` + `@types/nodemailer` a `package.json`.
+
+**Verificación:** `tsc`, lint y 30/30 tests limpios; `next build` de producción limpio; envío real de prueba vía SMTP confirmado con un script ad-hoc (mensaje entregado a la propia cuenta Gmail, `messageId` recibido). Variables `GMAIL_USER`/`GMAIL_APP_PASSWORD` agregadas por el usuario en Vercel (Project Settings → Environment Variables, producción). Commit `2d177ea` pusheado a `master`, disparando el redeploy automático en Vercel que ya toma las variables nuevas.
+
+**Sin resolver todavía:** no se confirmó explícitamente en Vercel que el redeploy del commit `2d177ea` terminó exitosamente (se pusheó y se asumió el flujo automático de Vercel, no se verificó el estado del deployment). El usuario real que había quedado bloqueado en la sesión 12 pidiendo recuperar su contraseña **todavía no fue notificado** — el usuario del proyecto decidió avisarle por su cuenta que use la opción "recuperar contraseña" del sitio, en vez de generar un link manual. No se verificó de punta a punta en producción (solo el envío SMTP aislado con un script de prueba, no el flujo completo `/olvide` → email → `/reset/[token]` contra el sitio desplegado).
+
+## Para continuar
+
+1. Confirmar que el deploy de Vercel para el commit `2d177ea` terminó bien (build limpio, variables de entorno tomadas).
+2. Cuando el usuario real avise que probó "recuperar contraseña", confirmar que le llegó el email y que el link de reset funciona en producción — primera prueba de punta a punta del flujo completo con Gmail SMTP en el sitio real, no solo el script aislado.
+3. Alcance parqueado, no iniciado: formato híbrido "Grupos + Mata-Mata", ajustes manuales de puntuación.
