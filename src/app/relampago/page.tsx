@@ -32,7 +32,7 @@ export default async function RelampagoPage() {
           <p className="text-lg">{t.relampago.emptyTitle}</p>
           <p className="mt-2 text-sm">
             {t.relampago.emptyBody}{" "}
-            <Link href="/torneos" className="text-primary hover:underline">
+            <Link href="/torneos" className="text-primary underline">
               {t.relampago.emptyLink}
             </Link>
             .

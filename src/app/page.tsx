@@ -80,7 +80,7 @@ export default async function Home() {
         {relampago.length === 0 ? (
           <p className="rounded-xl border border-border bg-surface p-8 text-center text-muted">
             {t.home.relampagoEmpty}{" "}
-            <Link href="/torneos" className="text-primary hover:underline">
+            <Link href="/torneos" className="text-primary underline">
               {t.home.relampagoEmptyLink}
             </Link>
             .

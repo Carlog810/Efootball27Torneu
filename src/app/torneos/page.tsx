@@ -56,7 +56,7 @@ export default async function TorneosPage({
       {tournaments.length === 0 ? (
         <p className="rounded-xl border border-border bg-surface p-8 text-center text-muted">
           {t.tournamentsPage.empty}{" "}
-          <Link href="/torneos" className="text-primary hover:underline">
+          <Link href="/torneos" className="text-primary underline">
             {t.tournamentsPage.clearFilters}
           </Link>
         </p>
