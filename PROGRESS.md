@@ -293,3 +293,21 @@ Se ejecutó el plan acordado en la sesión 12. El usuario creó la cuenta dedica
 1. Confirmar que el deploy de Vercel para el commit `2d177ea` terminó bien (build limpio, variables de entorno tomadas).
 2. Cuando el usuario real avise que probó "recuperar contraseña", confirmar que le llegó el email y que el link de reset funciona en producción — primera prueba de punta a punta del flujo completo con Gmail SMTP en el sitio real, no solo el script aislado.
 3. Alcance parqueado, no iniciado: formato híbrido "Grupos + Mata-Mata", ajustes manuales de puntuación.
+
+---
+
+## Sesión 14 (2026-09-12) — Validación mobile del sitio en producción
+
+A pedido del usuario, se corrió una pasada de validación mobile contra el sitio real en producción (Playwright + Chrome del sistema, viewport iPhone 13 / 390px), cubriendo 12 rutas públicas: `/`, `/torneos`, `/ligas`, `/equipos`, `/rankings`, `/buscar`, `/login`, `/registro`, `/olvide`, `/ayuda`, `/terminos`, `/relampago`.
+
+**Resultado:** 0 errores de consola/página en las 12 rutas, capturas de pantalla revisadas visualmente sin problemas de layout (sin overflow horizontal, botones con buen tamaño táctil, formularios legibles). El menú hamburguesa (fix de la sesión 11) sigue cerrándose correctamente al navegar — un primer chequeo automatizado dio un falso positivo de "no se cierra" por una condición de carrera en el propio script de prueba (chequear el atributo `open` inmediatamente después de `networkidle`, antes de que corriera el `useEffect` de React); con una espera corta se confirmó que sí cierra.
+
+**Bug real encontrado y arreglado:** axe-core marcó `link-in-text-block` (serio, WCAG 1.4.1) en `/`, `/torneos` y `/relampago` — el link "Torneios/Torneios" dentro del texto del estado vacío ("Nenhum torneio prestes a começar...") solo tenía `hover:underline` (sin subrayado en reposo) y su contraste de color con el texto circundante era de 1.14:1 (mínimo exigido: 3:1) — indistinguible del texto normal en mobile, donde no hay hover. Fix: subrayado permanente (`underline` en vez de `hover:underline`) en los 3 lugares afectados (`src/app/page.tsx`, `src/app/torneos/page.tsx`, `src/app/relampago/page.tsx`). Se dejaron sin tocar 3 usos similares del mismo patrón visual (`page.tsx` "Ver todos" x2, `torneos/[slug]/page.tsx` "Inicia sesión para participar") porque no están embebidos en texto corrido — son links independientes junto a un título, y axe no los marcó.
+
+**Verificación:** `tsc`/lint/30 tests/build limpios. Fix verificado dos veces: contra un snippet HTML aislado reproduciendo el markup exacto (confirma que `underline` resuelve la regla de axe) y visualmente en las capturas. No se re-corrió el scan contra producción después del deploy de este fix (quedó pendiente).
+
+## Para continuar
+
+1. Confirmar que el deploy de Vercel para el commit `2afec96` (fix de accesibilidad) se aplicó, y que el scan de axe ya no marca `link-in-text-block` en producción.
+2. Sigue pendiente lo de la sesión 13: confirmar el flujo de recuperación de contraseña de punta a punta con un usuario real.
+3. Alcance parqueado, no iniciado: formato híbrido "Grupos + Mata-Mata", ajustes manuales de puntuación.
