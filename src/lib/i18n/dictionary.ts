@@ -326,7 +326,10 @@ const dictionaries = {
         invalidOrExpiredToken: "O link de recuperação é inválido ou expirou",
       },
       forgotSuccess:
-        "Se o email existir no nosso sistema, foi gerado um link de recuperação (confira o console do servidor em desenvolvimento).",
+        "Se o email existir no nosso sistema, enviamos um link de recuperação para ele.",
+      resetEmailSubject: "Recuperação de senha — EF Torneos",
+      resetEmailBody:
+        "Recebemos uma solicitação para redefinir sua senha. Clique no link abaixo (válido por 1 hora):",
       validation: {
         nameMin: "O nome deve ter pelo menos 2 caracteres",
         emailInvalid: "Email inválido",
@@ -689,7 +692,10 @@ const dictionaries = {
         invalidOrExpiredToken: "El enlace de recuperación es inválido o expiró",
       },
       forgotSuccess:
-        "Si el email existe en nuestro sistema, se generó un enlace de recuperación (revisa la consola del servidor en desarrollo).",
+        "Si el email existe en nuestro sistema, te enviamos un enlace de recuperación.",
+      resetEmailSubject: "Recuperación de contraseña — EF Torneos",
+      resetEmailBody:
+        "Recibimos una solicitud para restablecer tu contraseña. Hacé clic en el siguiente enlace (válido por 1 hora):",
       validation: {
         nameMin: "El nombre debe tener al menos 2 caracteres",
         emailInvalid: "Email inválido",

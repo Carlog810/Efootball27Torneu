@@ -4,6 +4,7 @@ import { randomBytes } from "node:crypto";
 import { headers } from "next/headers";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
+import { sendPasswordResetEmail } from "@/lib/email";
 import { getLocale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n/dictionary";
 import {
@@ -98,9 +99,7 @@ export async function requestPasswordResetAction(
     const protocol = hdrs.get("x-forwarded-proto") ?? "http";
     const resetUrl = `${protocol}://${host}/reset/${token}`;
 
-    // No hay proveedor de email configurado (proyecto sin presupuesto):
-    // el link de reseteo se imprime en la consola del servidor.
-    console.log(`\n[Reset de contraseña] ${user.email} -> ${resetUrl}\n`);
+    await sendPasswordResetEmail(user.email, resetUrl, t);
   }
 
   return {
